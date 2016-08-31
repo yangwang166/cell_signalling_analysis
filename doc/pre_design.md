@@ -10,8 +10,8 @@
 				- [多线程实例](#多线程实例)
 		- [重构tunnel](#重构tunnel)
 			- [当前代码](#当前代码)
+	- [命令行上传](#命令行上传)
 
-<!-- /TOC -->
 # 手机信令分析
 
 ## 数据上传功能
@@ -199,3 +199,14 @@ console入口:
 最终位置:
 
 <https://github.com/wang-yang/aliyun-odps-console/blob/master/odps-console-dship/src/main/java/com/aliyun/odps/ship/DShipCommand.java>
+
+## 使用命令行工具
+
+目前可以通过命令行的形式调用上传脚本, 以及sql脚本  
+
+
+```
+./odpscmd -e "tunnel upload /Users/willwywang-NB/github/cell_signalling_analysis/data/test/300m test_20160828 -dbr true -rd '\n' -s 'true' -mbr 100000000 -threads 4;"
+```
+
+**现在的重点是把上传，执行sql等的返回通过程序获取到**
