@@ -186,11 +186,11 @@ tunnel的功能完全满足了需求, 目前的问题就是如何把tunnel重构
 
 console入口:
 
-<https://github.com/aliyun/aliyun-odps-console/blob/28dc41559e7c0a4013b2b5e5b8c77294e5509e47/odps-console-basic/src/main/java/com/aliyun/openservices/odps/console/ODPSConsole.java>
+<https://github.com/wang-yang/aliyun-odps-console/blob/master/odps-console-basic/src/main/java/com/aliyun/openservices/odps/console/ODPSConsole.java>
 
 陷入:
 
-<https://github.com/aliyun/aliyun-odps-console/blob/28dc41559e7c0a4013b2b5e5b8c77294e5509e47/odps-console-basic/src/main/java/com/aliyun/openservices/odps/console/utils/CommandParserUtils.java>
+<https://github.com/wang-yang/aliyun-odps-console/blob/master/odps-console-basic/src/main/java/com/aliyun/openservices/odps/console/utils/CommandParserUtils.java>
 
 中间寻找到tunnel命令:
 
