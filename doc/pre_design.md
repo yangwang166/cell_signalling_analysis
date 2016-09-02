@@ -210,3 +210,52 @@ console入口:
 ```
 
 **现在的重点是把上传，执行sql等的返回通过程序获取到**
+
+### 通过subprocess, 获取client返回结果
+```python
+import subprocess
+import shlex
+
+def runProcess(exe):
+    p = subprocess.Popen(exe, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    while(True):
+      retcode = p.poll() #returns None while subprocess is running
+      line = p.stdout.readline()
+      yield line
+      if(retcode is not None):
+        break
+    print "\nFinish process"
+
+home = "/Users/willwywang-NB"
+client = "%s/HQJY/ODPS/odpscmd_public_dev/bin/odpscmd" % home
+data_path = "%s/github/cell_signalling_analysis/data/test/50m" % home
+#sub_cmd = "tunnel upload %s test_20160828 -bs 20 -threads 3 -s only" % data_path
+#sub_cmd = "show tables"
+sub_cmd = """select count(*) from test_20160828"""
+
+#cmd = """
+#%s -e "%s";
+#""" % (client, sub_cmd)
+
+file_name = "count.sql"
+cmd = """
+%s -f "%s";
+""" % (client, file_name)
+
+print "cmd: ",cmd
+args =  shlex.split(cmd)
+print "args: ",args
+
+for line in runProcess(args):
+    print line,
+```
+
+### client开源版本无法执行sql问题
+最近在使用阿里开源的https://github.com/aliyun/aliyun-odps-console
+编译后无法运行sql:
+提示: `FAILED: apsara::AnyCast: can't cast from b to Ss`
+
+在ODPS文档中下载的客户端（https://docs-aliyun.cn-hangzhou.oss.aliyun-inc.com/cn/odps/0.0.90/assets/download/odpscmd_public.zip?spm=5176.doc27971.2.2.Iaeoa2&file=odpscmd_public.zip）
+版本是Version 0.21.1, 而github上的是Version 0.20.0-SNAPSHOT
+
+目前已经发邮件询问github维护者  
