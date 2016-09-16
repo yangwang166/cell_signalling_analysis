@@ -1,0 +1,7 @@
+com/aliyun/openservices/odps/console/mapreduce/runtime/CommandExecutor.class
+com/aliyun/openservices/odps/console/mapreduce/runtime/MapReduceJob.class
+com/aliyun/openservices/odps/console/mapreduce/runtime/MapReduceJobLauncher.class
+com/aliyun/openservices/odps/console/mapreduce/runtime/CommandExecutor$ExecutorResult.class
+com/aliyun/openservices/odps/console/mr/MapReduceCommand.class
+com/aliyun/openservices/odps/console/mapreduce/runtime/CommandExecutor$ExecReader.class
+com/aliyun/openservices/odps/console/mapreduce/runtime/MapReduceJob$1.class

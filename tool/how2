@@ -1,5 +1,0 @@
-把多个文件合并成1个文件
-awk 'FNR>1' out_1451399* > merged
-
-使用test_rd.py来测试结尾是什么字符
-python test_rd.py file

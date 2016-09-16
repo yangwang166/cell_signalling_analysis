@@ -1,0 +1,8 @@
+com/aliyun/openservices/odps/console/resource/GetResourceCommandTest.class
+com/aliyun/openservices/odps/console/resource/CreateResourceCommandTest.class
+com/aliyun/openservices/odps/console/resource/ListFunctionsCommandTest.class
+com/aliyun/openservices/odps/console/resource/DescribeResourceCommandTest.class
+com/aliyun/openservices/odps/console/resource/DescribeFunctionCommandTest.class
+com/aliyun/openservices/odps/console/resource/AddResourceCommandTest.class
+com/aliyun/openservices/odps/console/resource/CreateFunctionCommandTest.class
+com/aliyun/openservices/odps/console/resource/ListResourcesCommandTest.class

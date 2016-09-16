@@ -1,0 +1,4 @@
+com/aliyun/openservices/odps/console/auth/AuthorizationCommand.class
+com/aliyun/openservices/odps/console/auth/ShowSecuriyConfigurationCommand.class
+com/aliyun/openservices/odps/console/auth/PutPolicyCommand.class
+com/aliyun/openservices/odps/console/auth/GetPolicyCommand.class

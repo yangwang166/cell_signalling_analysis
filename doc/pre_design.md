@@ -1,4 +1,5 @@
-<!-- TOC depthFrom:1 depthTo:6 withLinks:1 updateOnSave:1 orderedList:0 -->
+
+<!-- toc orderedList:0 -->
 
 - [手机信令分析](#手机信令分析)
 	- [数据上传功能](#数据上传功能)
@@ -10,7 +11,16 @@
 				- [多线程实例](#多线程实例)
 		- [重构tunnel](#重构tunnel)
 			- [当前代码](#当前代码)
-	- [命令行上传](#命令行上传)
+	- [使用命令行工具](#使用命令行工具)
+		- [通过subprocess, 获取client返回结果](#通过subprocess-获取client返回结果)
+		- [client开源版本无法执行sql问题](#client开源版本无法执行sql问题)
+		- [api平台demo](#api平台demo)
+			- [tornado](#tornado)
+			- [命令行执行](#命令行执行)
+			- [通过api调用命令行](#通过api调用命令行)
+
+<!-- tocstop -->
+
 
 # 手机信令分析
 
@@ -258,4 +268,67 @@ for line in runProcess(args):
 在ODPS文档中下载的客户端（https://docs-aliyun.cn-hangzhou.oss.aliyun-inc.com/cn/odps/0.0.90/assets/download/odpscmd_public.zip?spm=5176.doc27971.2.2.Iaeoa2&file=odpscmd_public.zip）
 版本是Version 0.21.1, 而github上的是Version 0.20.0-SNAPSHOT
 
-目前已经发邮件询问github维护者  
+目前已经发邮件询问github维护者。
+更新: 此bug我已经修复, 提了pull request:<https://github.com/aliyun/aliyun-odps-console/pull/1>。
+
+
+### api平台demo
+
+#### tornado
+使用python语言的tornado作为api server的平台
+
+#### 命令行执行
+
+上传原始数据:
+`python test_cmd.py cmd/upload.cmd`
+
+执行sql:
+`python test_cmd.py cmd/limit3.sql`
+
+test_cmd.py代码
+```python
+import subprocess
+import shlex
+import sys
+
+def runProcess(exe):
+    p = subprocess.Popen(exe, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    while(True):
+      retcode = p.poll() #returns None while subprocess is running
+      line = p.stdout.readline()
+      yield line
+      if(retcode is not None):
+        break
+    print "\nFinish process"
+
+# Make it configable
+client = "/Users/willwywang-NB/github/cell_signalling_analysis/tool/odps/bin/odpscmd"
+
+file_name = sys.argv[1]
+
+# use sql file
+cmd = """
+%s -f "%s";
+""" % (client, file_name)
+
+print "cmd: ",cmd
+args =  shlex.split(cmd)
+print "args: ",args
+
+for line in runProcess(args):
+    print line,
+```
+
+#### 通过api调用命令行
+
+api输入参数:
+
+##### 数据地址:
+例如: /Users/willwywang-NB/github/cell_signalling_analysis/data/test/50m  
+注意事项: 数据是已经按照指定格式处理过的, 列数要跟创建的阿里云表一致。
+
+##### 目标表:
+例如: test_20160828
+
+##### 线程数:
+例如: 8

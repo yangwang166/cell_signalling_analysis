@@ -1,0 +1,10 @@
+/Users/willwywang-NB/github/aliyun-odps-console/odps-console-resource/src/main/java/com/aliyun/openservices/odps/console/resource/DropFunctionCommand.java
+/Users/willwywang-NB/github/aliyun-odps-console/odps-console-resource/src/main/java/com/aliyun/openservices/odps/console/resource/GetResourceCommand.java
+/Users/willwywang-NB/github/aliyun-odps-console/odps-console-resource/src/main/java/com/aliyun/openservices/odps/console/resource/ListFunctionsCommand.java
+/Users/willwywang-NB/github/aliyun-odps-console/odps-console-resource/src/main/java/com/aliyun/openservices/odps/console/resource/CreateFunctionCommand.java
+/Users/willwywang-NB/github/aliyun-odps-console/odps-console-resource/src/main/java/com/aliyun/openservices/odps/console/resource/CreateResourceCommand.java
+/Users/willwywang-NB/github/aliyun-odps-console/odps-console-resource/src/main/java/com/aliyun/openservices/odps/console/resource/DescribeFunctionCommand.java
+/Users/willwywang-NB/github/aliyun-odps-console/odps-console-resource/src/main/java/com/aliyun/openservices/odps/console/resource/DropResourceCommand.java
+/Users/willwywang-NB/github/aliyun-odps-console/odps-console-resource/src/main/java/com/aliyun/openservices/odps/console/resource/ListResourcesCommand.java
+/Users/willwywang-NB/github/aliyun-odps-console/odps-console-resource/src/main/java/com/aliyun/openservices/odps/console/resource/AddResourceCommand.java
+/Users/willwywang-NB/github/aliyun-odps-console/odps-console-resource/src/main/java/com/aliyun/openservices/odps/console/resource/DescribeResourceCommand.java

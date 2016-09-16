@@ -1,0 +1,3 @@
+3:41943040:11932583:/Users/willwywang-NB/github/cell_signalling_analysis/data/test/50m
+2:20971520:20971520:/Users/willwywang-NB/github/cell_signalling_analysis/data/test/50m
+1:0:20971520:/Users/willwywang-NB/github/cell_signalling_analysis/data/test/50m

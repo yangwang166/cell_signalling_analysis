@@ -1,0 +1,14 @@
+2016-09-16 17:06:23  -  start upload:/Users/willwywang-NB/github/cell_signalling_analysis/data/test/50m
+2016-09-16 17:06:23  -  start scan , blockid=1
+2016-09-16 17:06:23  -  start scan , blockid=3
+2016-09-16 17:06:23  -  start scan , blockid=2
+2016-09-16 17:06:23  -  scan complete, blockid=3
+2016-09-16 17:06:23  -  scan complete, blockid=1
+2016-09-16 17:06:23  -  scan complete, blockid=2
+2016-09-16 17:06:23  -  start upload , blockid=1
+2016-09-16 17:06:23  -  start upload , blockid=2
+2016-09-16 17:06:23  -  start upload , blockid=3
+2016-09-16 17:06:37  -  upload complete, blockid=3
+2016-09-16 17:06:46  -  upload complete, blockid=2
+2016-09-16 17:06:46  -  upload complete, blockid=1
+2016-09-16 17:06:48  -  upload complete:/Users/willwywang-NB/github/cell_signalling_analysis/data/test/50m
