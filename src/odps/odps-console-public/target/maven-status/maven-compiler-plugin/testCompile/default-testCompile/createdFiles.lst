@@ -1,9 +1,0 @@
-com/aliyun/openservices/odps/console/pub/ShowTablesCommandTest.class
-com/aliyun/openservices/odps/console/pub/ExportMetaCommandTest.class
-com/aliyun/openservices/odps/console/pub/WaitCommandTest.class
-com/aliyun/openservices/odps/console/pub/StopInstanceCommandTest.class
-com/aliyun/openservices/odps/console/pub/ShowPartitionsCommandTest.class
-com/aliyun/openservices/odps/console/pub/ShowInstancesCommandTest.class
-com/aliyun/openservices/odps/console/pub/DescribeTableCommandTest.class
-com/aliyun/openservices/odps/console/pub/DescribeInstanceCommandTest.class
-com/aliyun/openservices/odps/console/pub/DescribeProjectCommandTest.class

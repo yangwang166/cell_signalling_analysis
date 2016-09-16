@@ -1,9 +1,0 @@
-/Users/willwywang-NB/github/aliyun-odps-console/odps-console-public/src/test/java/com/aliyun/openservices/odps/console/pub/DescribeInstanceCommandTest.java
-/Users/willwywang-NB/github/aliyun-odps-console/odps-console-public/src/test/java/com/aliyun/openservices/odps/console/pub/DescribeProjectCommandTest.java
-/Users/willwywang-NB/github/aliyun-odps-console/odps-console-public/src/test/java/com/aliyun/openservices/odps/console/pub/DescribeTableCommandTest.java
-/Users/willwywang-NB/github/aliyun-odps-console/odps-console-public/src/test/java/com/aliyun/openservices/odps/console/pub/WaitCommandTest.java
-/Users/willwywang-NB/github/aliyun-odps-console/odps-console-public/src/test/java/com/aliyun/openservices/odps/console/pub/ShowPartitionsCommandTest.java
-/Users/willwywang-NB/github/aliyun-odps-console/odps-console-public/src/test/java/com/aliyun/openservices/odps/console/pub/ShowTablesCommandTest.java
-/Users/willwywang-NB/github/aliyun-odps-console/odps-console-public/src/test/java/com/aliyun/openservices/odps/console/pub/ExportMetaCommandTest.java
-/Users/willwywang-NB/github/aliyun-odps-console/odps-console-public/src/test/java/com/aliyun/openservices/odps/console/pub/ShowInstancesCommandTest.java
-/Users/willwywang-NB/github/aliyun-odps-console/odps-console-public/src/test/java/com/aliyun/openservices/odps/console/pub/StopInstanceCommandTest.java

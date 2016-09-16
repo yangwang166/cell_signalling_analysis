@@ -1,5 +1,0 @@
-******Odps Command Line Tools******
-BuildTime: 2016-09-16 13:17:16
-Revision: 68844ff
-MavenVersion: 0.23.1
-Branch: master
