@@ -33,6 +33,9 @@ odps-console-stream/src/test/resources/odps_config.ini
 
 - `mvn clean test`
 
+## Maintainer
+- [Wang Yang](https://github.com/wang-yang)
+
 ## Authors && Contributors
 
 - [Wang Shenggong](https://github.com/shellc)
