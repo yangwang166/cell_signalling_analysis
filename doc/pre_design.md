@@ -18,6 +18,9 @@
 			- [tornado](#tornado)
 			- [命令行执行](#命令行执行)
 			- [通过api调用命令行](#通过api调用命令行)
+				- [数据地址:](#数据地址)
+				- [目标表:](#目标表)
+				- [线程数:](#线程数)
 
 <!-- tocstop -->
 
@@ -40,6 +43,12 @@ create table if not exists test_20160828(
   lat double,
   in_room bigint,
   is_roam bigint);
+```
+
+如果数据太多了就drop掉重新创建表:
+
+```
+drop table test_20160828;
 ```
 
 ### 确认Tunnel行为, 执行上传tunnel:

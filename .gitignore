@@ -4,3 +4,5 @@ data/
 =3.0
 .*
 target/
+db/
+tool/odps/plugins/dship/sessions/
