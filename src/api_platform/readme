@@ -2,4 +2,6 @@
 使用方法: python test_cmd cmd/某个文件
 
 ## api启动方法:  
+  mongod --dbpath /path/to/mongodb/data/path
+    eg: mongod --dbpath /Users/willwywang-NB/github/cell_signalling_analysis/db
   python api_platform.py --port=8000
