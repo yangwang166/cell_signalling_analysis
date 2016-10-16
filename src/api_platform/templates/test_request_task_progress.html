@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+	<head><title>测试获取任务执行进度</title></head>
+	<body>
+		<h1>输入参数</h1>
+    <table>
+      <tr>
+        <th>任务ID</th>
+        <th>任务描述</th>
+      </tr>
+      <tr>
+        <td>1</td>
+        <td>创建客户格式原始数据表</td>
+      </tr>
+      <tr>
+        <td>2</td> 
+        <td>上传客户格式原始数据表</td>
+      </tr>
+      <tr>
+        <td>3</td> 
+        <td>转换客户格式到内部格式</td>
+      </tr>
+    </table>
+		<form method="post" action="/request_task_progress">
+		<p>项目ID<br><input type="text" name="project_id"></p>
+		<p>任务ID<br><input type="text" name="task_id"></p>
+		<input type="submit">
+		</form>
+	</body>
+</html>

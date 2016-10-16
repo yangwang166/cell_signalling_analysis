@@ -1,16 +1,12 @@
 <!DOCTYPE html>
 <html>
-	<head><title>数据上传进度</title></head>
+	<head><title>数据已经开始上传</title></head>
 	<body>
-		<h1>数据上传进度</h1>
+    <p>项目ID: {{project_id}}</p>
     <p>数据地址: {{data_path}}</p>
     <p>阿里云表: {{aliyun_table}}</p>
     <p>线程数: {{threads_num}}</p>
     <p>行分隔符: {{row_delimiter}}</p>
     <p>列分隔符: {{col_delimiter}}</p>
-    <div>获取上传进度</div>
-    <form method="post" action="/upload_progress">
-    <input type="submit">
-    </form>
 	</body>
 </html>
