@@ -347,7 +347,7 @@ class TransformToInnerFormatHandler(tornado.web.RequestHandler, BaseHandler):
     #    call_out bigint);
     #    insert overwrite table nanjing1_raw_data select uuid, lon, lat, time, 
     #    cell_id, cell_name, is_roam, in_room, call_in, call_out 
-    #    from nj_raw_data;
+    #    from nanjing1_customer_raw_data;
     db_client = MongoClient('localhost', 27017)
     db = db_client[self.project_id + "_db"]
     collection = db["customer_fields"]
