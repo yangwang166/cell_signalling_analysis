@@ -1,152 +1,65 @@
 # API list
 
-## 上传
+## /upload_data [ok]
 
-### /upload_data
-
-上传数据
+上传客户原始格式数据
 
 参数:
 1. data_path
-2. aliyun_table
-3. threads_num
-4. row_delimiter
-5. col_delimiter
-6. project_id
+2. threads_num
+3. row_delimiter
+4. col_delimiter
+5. project_id
 
-**测试页面**
+## /create_customer_raw_data [ok]
 
-![](test_upload.png)
+创建客户原始格式数据表
 
-**后端demo**
+参数:
+1. fields
+2. project_id
 
-![](upload_backend.png)
+## /request_task_progress [ok]
 
+获取各种任务执行进度
 
-### /request_upload_progress
+参数:
+1. project_id
+2. task_id
 
-查看上传进度
+## /transform_to_inner_format [ok]
 
-### /requet_upload_stat
+将客户格式数据转换到内部时空格式  
+同时:
+1. 对数据进行按照日期的分区,
+2. 在(uuid, time, lat, lon)粒度上的去重
+3. 和初级的过滤, 各字段null, 0等异常值去除
 
-获取原上传后数据的统计信息
+参数:
+1. project_id
 
-## 去重
-
-### /deduplication_data
-
-启动数据去重
-
-### /request_deduplication_progress
-
-查看去重进度
-
-### /requet_deduplication_stat
-
-获取去重数据的统计信息
-
+# TODO
 ## 过滤
-
 ### /filter_data
-
 启动数据过滤
-
-### /request_filter_progress
-
-查看过滤进度
-
-### /requet_filter_stat
-
-获取过滤数据的统计信息
-
-## 分区
-
-### /partition_data
-
-创建根据日期的分区表
-
-### /request_partition_progress
-
-查看分区进度
-
-### /requet_partition_stat
-
-获取分区数据的统计信息
-
-## 人口统计 
-
+## 人口统计
 ### /demographic
-
 启动计算每个人的数据条数等
-
-### /request_demographic_progress
-
-查看进度
-
-### /request_demographic_stat
-
-获取人口统计信息
-
 ## 基站信息
-
 ### /basestation
-
 启动基站信息抽取
-
-### /request_basestation_progress
-
-查看进度
-
-### /request_station_stat
-
-获取基站统计信息
-
 ## 天粒度基站热力
-
 ### /base_station_summary
-
 启动天粒度基站热力
-
-### /request_base_station_summary_progress
-
-天粒度基站热力进度
-
-### /request_base_station_summary_stat
-
-获取天粒度基站热力统计
-
 ### /get_base_station_summary
-
 获取天粒度基站热力进度
-
 ## 小时粒度基站热力
-
 ### /base_station_hour_summary
-
 启动天粒度基站热力
-
-### /request_base_station_hour_summary_progress
-
-天粒度基站热力进度
-
-### /request_base_station_hour_summary_stat
-
-获取天粒度基站热力统计
-
 ### /get_base_station_hour_summary
-
 获取天粒度基站热力进度
-
 ## 最细粒度人时空信息表
-
 ### /uuid_cell_hours
-
 启动计算人的时空聚合信息
-
-### /request_uuid_cell_hours_progress
-
-查看进度
-
 ### /request_uuid_cell_hours_stat
-
 获取人的时空信息统计
