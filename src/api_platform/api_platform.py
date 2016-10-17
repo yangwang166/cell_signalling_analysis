@@ -19,9 +19,10 @@ define("port", default=8000, help="run on the given port", type=int)
 _odps_client = "/Users/willwywang-NB/"+\
          "github/cell_signalling_analysis/tool/odps/bin/odpscmd"
 
+# 定义见文档: 任务进度查询.md
 _task_id = {"create_customer_raw_data_table":1,
-           "upload_customer_raw_data":2,
-           "transform_to_raw_data":3
+            "upload_customer_raw_data":2,
+            "transform_to_spatio_temporal_raw_data":3
           }
 
 def plog(msg):
@@ -106,15 +107,15 @@ class UploadHandler(tornado.web.RequestHandler, BaseHandler):
     finished = 0
     progress = 0
     session_id = ""
+    db_client = MongoClient('localhost', 27017)
+    db = db_client[self.project_id + "_db"]
+    collection = db["task-progress"]
     for line in BaseHandler.runProcess(self, exe):
       print line,
       # extract upload progess and total block
       if "Upload session" in line:
         session_id = line.split()[2]
         plog("session_id: " + session_id)
-        db_client = MongoClient('localhost', 27017)
-        db = db_client[self.project_id + "_db"]
-        collection = db["task-progress"]
         result = collection.delete_many({
                  "project_id": self.project_id,
                  "task_id": _task_id["upload_customer_raw_data"]})
@@ -179,15 +180,15 @@ class CreateCustomerRawDataHandler(tornado.web.RequestHandler, BaseHandler):
   def doCreateCustomerRaw(self, exe):
     name = multiprocessing.current_process().name
     plog(name + ": " + "Starting")
+    db_client = MongoClient('localhost', 27017)
+    db = db_client[self.project_id + "_db"]
+    collection = db["task-progress"]
     for line in BaseHandler.runProcess(self, exe):
       print line,
       if "ID" in line:
         session_id = line.split()[2]
         plog("session_id: " + session_id)
       if "OK" in line:
-        db_client = MongoClient('localhost', 27017)
-        db = db_client[self.project_id + "_db"]
-        collection = db["task-progress"]
         result = collection.delete_many({
                  "project_id": self.project_id,
                  "task_id": _task_id["create_customer_raw_data_table"]})
@@ -299,55 +300,69 @@ class TransformToInnerFormatHandler(tornado.web.RequestHandler, BaseHandler):
   def doTransformToInnerFormat(self, exe):
     name = multiprocessing.current_process().name
     plog(name+" "+"Starting")
-    total = 0
-    finished = 0
     progress = 0
     session_id = ""
+    db_client = MongoClient('localhost', 27017)
+    db = db_client[self.project_id + "_db"]
+    collection = db["task-progress"]
+    count = 0;
     for line in BaseHandler.runProcess(self, exe):
       print line,
+      if "ID" in line:
+        session_id = line.split()[2]
+        plog("session_id: " + session_id)
+        result = collection.delete_many({
+                 "project_id": self.project_id,
+                 "task_id": _task_id["transform_to_spatio_temporal_raw_data"]})
+        result = collection.insert_one(
+            { "project_id" : self.project_id,
+              "task_id" : _task_id["transform_to_spatio_temporal_raw_data"],
+              "aliyun_sess_id" : session_id,
+              "progress" : progress,
+              "lastModified" : datetime.datetime.utcnow()
+            }
+        )
+        plog("result.inserted_id: " + str(result.inserted_id))
+      elif "OK" in line:
+        progress = 100
+        plog("progress: " + str(progress) + "%")
+        result = collection.update_one(
+          {"project_id" : self.project_id, 
+            "task_id" : _task_id["transform_to_spatio_temporal_raw_data"] },
+          {
+            "$set": {
+              "progress": progress 
+            },
+            "$currentDate": {"lastModified": True}
+          }
+        )
+        plog("result.matched_count: "+str(result.matched_count))
+        plog("result.modified_count: "+str(result.modified_count))
+      elif "%" in line:
+        count += 1
+        l = line.rfind("[")
+        r = line.rfind("%")
+        progress = int(line[l+1:r]) # Not good look, use bellow
+        progress = int((1.0 * count / (count + 1)) * 100)
+        plog("progress: " + str(progress) + "%")
+        result = collection.update_one(
+          {"project_id" : self.project_id, 
+            "task_id" : _task_id["transform_to_spatio_temporal_raw_data"] },
+          {
+            "$set": {
+              "progress": progress 
+            },
+            "$currentDate": {"lastModified": True}
+          }
+        )
+        plog("result.matched_count: "+str(result.matched_count))
+        plog("result.modified_count: "+str(result.modified_count))
       # TODO 解析
-      """
-      ID = 20161016172027922go1lobg8
-      Log view:
-      http://logview.odps.aliyun.com/logview/?h=http://service.odps.aliyun.com/api&p=tsnav_project&i=20161016172027922go1lobg8&token=MERHRjFGZXhNc2ppQSttbUNTYWs5RHlqSFNBPSxPRFBTX09CTzoxNDUzNTUxMjc4NDQwNjgzLDE0NzcyNDMyMjkseyJTdGF0ZW1lbnQiOlt7IkFjdGlvbiI6WyJvZHBzOlJlYWQiXSwiRWZmZWN0IjoiQWxsb3ciLCJSZXNvdXJjZSI6WyJhY3M6b2RwczoqOnByb2plY3RzL3RzbmF2X3Byb2plY3QvaW5zdGFuY2VzLzIwMTYxMDE2MTcyMDI3OTIyZ28xbG9iZzgiXX1dLCJWZXJzaW9uIjoiMSJ9
-      OK
-      
-      ID = 20161016172031386gias37jc2
-      Log view:
-      http://logview.odps.aliyun.com/logview/?h=http://service.odps.aliyun.com/api&p=tsnav_project&i=20161016172031386gias37jc2&token=VXU4ZFBMR3QxSURKTUhHZHhhZkgxR0FQMS9RPSxPRFBTX09CTzoxNDUzNTUxMjc4NDQwNjgzLDE0NzcyNDMyMzIseyJTdGF0ZW1lbnQiOlt7IkFjdGlvbiI6WyJvZHBzOlJlYWQiXSwiRWZmZWN0IjoiQWxsb3ciLCJSZXNvdXJjZSI6WyJhY3M6b2RwczoqOnByb2plY3RzL3RzbmF2X3Byb2plY3QvaW5zdGFuY2VzLzIwMTYxMDE2MTcyMDMxMzg2Z2lhczM3amMyIl19XSwiVmVyc2lvbiI6IjEifQ==
-      2016-10-17 01:20:57 M1_Stg1_job0:1/0/1[0%]
-      Summary:
-      resource cost: cpu 0.07 Core * Min, memory 0.13 GB * Min
-      inputs:
-               tsnav_project.nanjing1_customer_raw_data: 530441 (19062328 bytes)
-      outputs:
-               tsnav_project.nanjing1_raw_data: 530441 (16127760 bytes)
-      Job run time: 4.000
-      Job run mode: service job
-      M1_Stg1:
-               instance count: 1
-               run time: 4.000
-               instance time:
-                 min: 4.000, max: 4.000, avg: 4.000
-               input records:
-                 input: 530441  (min: 530441, max: 530441, avg: 530441)
-               output records:
-                 M1_Stg1FS_17396543: 530441  (min: 530441, max: 530441, avg: 530441)
-      
-      OK
-      """
     plog(name+" Exiting")
   def post(self):
     self.project_id = self.get_argument('project_id');
     plog("project_id: " + self.project_id)
     # TODO 用元数据记录客户原始表各个字段的类型, 因为时间类型不同处理方式不同
-    #Eg: create table if not exists nanjing1_raw_data(uuid string,
-    #    lon double, lat double, time bigint, cell_id bigint, 
-    #    cell_name string, is_roam bigint, in_room bigint, call_in bigint,
-    #    call_out bigint);
-    #    insert overwrite table nanjing1_raw_data select uuid, lon, lat, time, 
-    #    cell_id, cell_name, is_roam, in_room, call_in, call_out 
-    #    from nanjing1_customer_raw_data;
     db_client = MongoClient('localhost', 27017)
     db = db_client[self.project_id + "_db"]
     collection = db["customer_fields"]
@@ -360,13 +375,20 @@ class TransformToInnerFormatHandler(tornado.web.RequestHandler, BaseHandler):
       (fields, types) = self.extractValidFields(fields_raw)
       # TODO 根据字段的types区分转换
       # 合成需要取出的字段
-      field_list = ",".join(fields)
+      if("uuid" in fields and "lon" in fields and "lat" in fields and
+          "time" in fields):
+        field_list = "uuid, lon, lat, time"
+      # TODO use cmd folder file with wildcards
       sql = "create table if not exists " + self.project_id + \
-            "_raw_data(uuid string, lon double, lat double, time bigint, " + \
-            "cell_id bigint, cell_name string, is_roam bigint, " + \
-            "in_room bigint, call_in bigint, call_out bigint); " + \
-            "insert overwrite table " + self.project_id + "_raw_data select " + \
-            field_list + " from " + self.project_id + "_customer_raw_data;"
+            "_spatio_temporal_raw_data(uuid string, lon double, lat double, " + \
+            "time bigint) partitioned by (date_p string); " + \
+            "insert overwrite table " + self.project_id + \
+            "_spatio_temporal_raw_data partition(date_p) select " + \
+            field_list + ", to_char(from_unixtime(time), 'yyyymmdd') as date_p "+\
+            "from " + self.project_id + "_customer_raw_data " + \
+            "where lat is not null and lon is not null and uuid is not null "+\
+            "and time is not null and lat>0 and lon>0 and time>0 group by "+\
+            "uuid, time, lat, lon;"
       plog("sql: " + sql)
       BaseHandler.runCmd(self, sql, \
           "transform_to_inner_format_process", self.doTransformToInnerFormat)
