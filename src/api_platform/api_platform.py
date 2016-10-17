@@ -405,8 +405,6 @@ class TransformToInnerFormatHandler(tornado.web.RequestHandler, BaseHandler):
                 task_id = task_id,
                 fields_raw = fields_raw,
                 ret_msg = "Success")
-    
-
 
 if __name__ == '__main__':
   tornado.options.parse_command_line()
