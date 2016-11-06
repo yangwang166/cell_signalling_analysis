@@ -47,17 +47,17 @@
 0,299536#1,1294#2,121#3,74#4,18#5,18#6,8#7,3#8,2#12,1#13,1#14,2#20,2#6105,1
 ```
 
-## /compute_raw_data_stat
+## /compute_raw_data_stat [ok]
 计算每天的数据条数, 可知道有几天数据, 每天的数据条数  
 参数:  
 1. project_id  
 
-## /get_raw_data_stat
+## /get_raw_data_stat [ok]
 获取每天的数据条数, 可知道有几天数据, 每天的数据条数  
 参数:  
 1. project_id  
 
-## /filter_data_with_range
+## /filter_data_with_range [ok]
 利用人基于数据量的分布, 过滤数据  
 参数:  
 1. project_id
@@ -65,12 +65,12 @@
 3. count_min  
 4. count_max  
 
-## /compute_filtered_data_stat
+## /compute_filtered_data_stat [ok]
 计算过滤后的每天数据条数  
 参数:  
 1. project_id  
 
-## /get_filtered_data_stat
+## /get_filtered_data_stat [ok]
 获取过滤后的每天数据条数  
 参数:   
 1. project_id  
