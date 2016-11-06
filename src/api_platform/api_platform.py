@@ -5,7 +5,9 @@ import subprocess
 import shlex
 import multiprocessing
 import datetime
+import time
 from pymongo import MongoClient
+from odps import ODPS
 
 import tornado.httpserver
 import tornado.ioloop
@@ -22,8 +24,15 @@ _odps_client = "/Users/willwywang-NB/"+\
 # 定义见文档: 任务进度查询.md
 _task_id = {"create_customer_raw_data_table":1,
             "upload_customer_raw_data":2,
-            "transform_to_spatio_temporal_raw_data":3
+            "transform_to_spatio_temporal_raw_data":3,
+            "compute_people_distribution":4
           }
+
+access_id = "xO0RtfYLVQEnAuUN"
+access_key = "imNsJiShzQlcNYmDvrEt2hiXsreDro"
+project = "tsnav_project"
+end_point = "http://service.odps.aliyun.com/api"
+odps = ODPS(access_id, access_key, project, end_point)
 
 def plog(msg):
   print "API: ", msg
@@ -41,6 +50,10 @@ class Application(tornado.web.Application):
                 TestRequestTaskProgressHandler),
               (r'/test_transform_to_inner_format', 
                 TestTransformToInnerFormatHandler),
+              (r'/test_compute_people_distribution', 
+                TestComputePeopleDistributionHandler),
+              (r'/test_get_people_distribution', 
+                TestGetPeopleDistributionHandler),
               (r'/upload_data', 
                 UploadHandler),
               (r'/create_customer_raw_data', 
@@ -49,6 +62,10 @@ class Application(tornado.web.Application):
                 RequestTaskProgressHandler),
               (r'/transform_to_inner_format', 
                 TransformToInnerFormatHandler),
+              (r'/compute_people_distribution', 
+                ComputePeopleDistributionHandler),
+              (r'/get_people_distribution', 
+                GetPeopleDistributionHandler),
              ]
     settings = dict(
       template_path=os.path.join(os.path.dirname(__file__), "templates"),
@@ -76,6 +93,14 @@ class TestTransformToInnerFormatHandler(tornado.web.RequestHandler):
   def get(self):
     self.render('test_transform_to_inner_format.html')
 
+class TestComputePeopleDistributionHandler(tornado.web.RequestHandler):
+  def get(self):
+    self.render('test_compute_people_distribution.html')
+
+class TestGetPeopleDistributionHandler(tornado.web.RequestHandler):
+  def get(self):
+    self.render('test_get_people_distribution.html')
+
 class BaseHandler():
   def runProcess(self, exe):    
     p = subprocess.Popen(exe, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -97,6 +122,11 @@ class BaseHandler():
     process = multiprocessing.Process(name = process_name,
                                       target = target_fuc, 
                                       args = (arguments,))
+    process.start()
+  def runSQL(self, sql, process_name, target_fuc):
+    process = multiprocessing.Process(name = process_name,
+                                      target = target_fuc,
+                                      args = (sql,))
     process.start()
 
 class UploadHandler(tornado.web.RequestHandler, BaseHandler):
@@ -151,6 +181,7 @@ class UploadHandler(tornado.web.RequestHandler, BaseHandler):
     plog(name+" Exiting")
     db_client.close()
   def post(self):
+    # 解析输入的参数
     self.project_id = self.get_argument('project_id')
     data_path = self.get_argument('data_path')
     #aliyun_table = self.get_argument('aliyun_table')
@@ -158,10 +189,13 @@ class UploadHandler(tornado.web.RequestHandler, BaseHandler):
     threads_num = self.get_argument('threads_num')
     row_delimiter = self.get_argument('row_delimiter')
     col_delimiter = self.get_argument('col_delimiter')
+    # 构造阿里云上运行的sql
     upload_cmd = "tunnel upload %s %s -bs 10 -threads %s -s true" \
                  % (data_path, aliyun_table, threads_num)
     ## TODO: drop table and clean progress db before a new upload
+    # 调用阿里云执行sql
     BaseHandler.runCmd(self, upload_cmd, "upload_process", self.doUpload)
+    # 渲染结果页面
     self.render('upload_result.html', 
                 project_id = self.project_id,
                 data_path = data_path,
@@ -299,7 +333,7 @@ class TransformToInnerFormatHandler(tornado.web.RequestHandler, BaseHandler):
     return (fields, types)
   def doTransformToInnerFormat(self, exe):
     name = multiprocessing.current_process().name
-    plog(name+" "+"Starting")
+    plog(name + " " + "Starting")
     progress = 0
     session_id = ""
     db_client = MongoClient('localhost', 27017)
@@ -358,6 +392,7 @@ class TransformToInnerFormatHandler(tornado.web.RequestHandler, BaseHandler):
         plog("result.matched_count: "+str(result.matched_count))
         plog("result.modified_count: "+str(result.modified_count))
       # TODO 解析
+    db_client.close()
     plog(name+" Exiting")
   def post(self):
     self.project_id = self.get_argument('project_id');
@@ -400,10 +435,145 @@ class TransformToInnerFormatHandler(tornado.web.RequestHandler, BaseHandler):
                   project_id = self.project_id,
                   task_id = task_id,
                   ret_msg = "Error")
+    db_client.close()
     self.render('transform_to_inner_format_result.html',
                 project_id = self.project_id,
                 task_id = task_id,
                 fields_raw = fields_raw,
+                ret_msg = "Success")
+
+class ComputePeopleDistributionHandler(tornado.web.RequestHandler, BaseHandler):
+  def processResult(self, raw):
+    result = raw.split("\n")[1:-1]
+    result_str = '#'.join(result)
+    plog("People distribution: " + str(result_str))
+    return result_str
+  def doComputePeopleDistribution(self, sql):
+    # 调用后台阿里云后, 这里处理其返回结果
+    name = multiprocessing.current_process().name
+    plog(name + " " + "Starting")
+    progress = 0
+    session_id = ""
+    # 建立数据库连接
+    db_client = MongoClient('localhost', 27017)
+    db = db_client[self.project_id + "_db"]
+    collection = db["task-progress"]
+    count = 0;
+    result = collection.delete_many({
+             "project_id": self.project_id,
+             "task_id": _task_id["compute_people_distribution"]})
+    result = collection.insert_one(
+        { "project_id" : self.project_id,
+          "task_id" : _task_id["compute_people_distribution"],
+          "aliyun_sess_id" : session_id,
+          "progress" : progress,
+          "lastModified" : datetime.datetime.utcnow()
+        }
+    )
+    plog("result.inserted_id: " + str(result.inserted_id))
+    instance = odps.run_sql(sql)
+    while(not instance.is_successful()):
+      #plog("is_successful(): " + str(instance.is_successful()))
+      #plog("is_terminated(): " + str(instance.is_terminated()))
+      count += 1
+      progress = int((1.0 * count / (count + 1)) * 100)
+      plog("progress: " + str(progress) + "%")
+      result = collection.update_one(
+        {"project_id" : self.project_id, 
+          "task_id" : _task_id["compute_people_distribution"] },
+        {
+          "$set": {
+            "progress": progress 
+          },
+          "$currentDate": {"lastModified": True}
+        }
+      )
+      time.sleep(5) 
+    #plog(instance.get_task_result(instance.get_task_names()[0]))
+    raw_result = instance.get_task_result(instance.get_task_names()[0])
+    # 把人基于数据量的分布写入本地数据库
+    collection2 = db["local-result"]
+    people_distribution = self.processResult(raw_result)
+    result = collection2.delete_many({
+             "project_id": self.project_id,
+             "task_id": _task_id["compute_people_distribution"]})
+    result = collection2.insert_one(
+        { "project_id" : self.project_id,
+          "task_id" : _task_id["compute_people_distribution"],
+          "result" : people_distribution,
+          "lastModified" : datetime.datetime.utcnow()
+        }
+    )
+    progress = 100
+    plog("progress: " + str(progress) + "%")
+    result = collection.update_one(
+      {"project_id" : self.project_id, 
+        "task_id" : _task_id["compute_people_distribution"] },
+      {
+        "$set": {
+          "progress": progress 
+        },
+        "$currentDate": {"lastModified": True}
+      }
+    )
+    db_client.close()
+    plog("result.matched_count: "+str(result.matched_count))
+    plog("result.modified_count: "+str(result.modified_count))
+  def post(self):
+    # 解析输入的参数
+    self.project_id = self.get_argument('project_id');
+    self.interval_size = self.get_argument('interval_size');
+    self.date_p = self.get_argument('date_p');
+    self.top_n = self.get_argument('top_n');
+    # 构造阿里云上运行的sql
+    sql = ('select t.r as interval, count(*) as count from ('
+           'select uuid, floor((count(*)/' + self.interval_size + ')) as r '
+           'from ' + self.project_id + '_spatio_temporal_raw_data '
+           'where date_p=' + self.date_p + ' '
+           'group by uuid) t '
+           'group by t.r '
+           'order by interval '
+           'limit ' + self.top_n + ';')
+    plog("sql: " + sql)
+    # 调用阿里云执行sql
+    BaseHandler.runSQL(self, sql, \
+        "compute_people_distribution", self.doComputePeopleDistribution)
+    # 渲染结果页面
+    self.render('compute_people_distribution_result.html',
+                project_id = self.project_id,
+                interval_size = self.interval_size,
+                date_p = self.date_p,
+                top_n = self.top_n,
+                ret_msg = "Success")
+
+class GetPeopleDistributionHandler(tornado.web.RequestHandler, BaseHandler):
+  def post(self):
+    # 解析输入的参数
+    project_id = self.get_argument('project_id');
+    # 查询本地数据库
+    db_client = MongoClient('localhost', 27017)
+    db = db_client[project_id + "_db"]
+    collection = db["local-result"]
+    cursor = collection.find({"project_id": project_id,
+                             "task_id": _task_id["compute_people_distribution"]})
+    plog("cursor.count(): " + str(cursor.count()))
+    people_distribution = ""
+    if(cursor.count() == 1):
+      people_distribution = cursor.next()["result"]
+    else:
+      plog("Warning: project_id: " + project_id + ", task_id: " + task_id
+           + " has more than one progess record")
+      people_distribution = ""
+      self.render('get_people_distribution_result.html',
+                  project_id = project_id,
+                  people_distribution = people_distribution,
+                  ret_msg = "Error")
+    db_client.close()
+    plog("Get people_distribution: " + str(people_distribution))
+    # 渲染结果页面
+    self.render('get_people_distribution_result.html',
+                project_id = project_id,
+                people_distribution = people_distribution,
                 ret_msg = "Success")
 
 if __name__ == '__main__':

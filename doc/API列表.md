@@ -30,44 +30,64 @@
 参数:  
 1. project_id  
 
-## /get_raw_data_stat  
+## /compute_people_distribution [ok]
+计算人基于数据量的分布
+参数:
+1. project_id
+2. interval_size
+3. date_p
+4. top_n
+
+## /get_people_distribution [ok]
+拉取人基于数据量的分布
+参数:
+1. project_id
+返回的结果是, 每组数据用`#`隔开, 按照区间的顺序递增
+```
+0,299536#1,1294#2,121#3,74#4,18#5,18#6,8#7,3#8,2#12,1#13,1#14,2#20,2#6105,1
+```
+
+## /compute_raw_data_stat
+计算每天的数据条数, 可知道有几天数据, 每天的数据条数  
+参数:  
+1. project_id  
+
+## /get_raw_data_stat
 获取每天的数据条数, 可知道有几天数据, 每天的数据条数  
 参数:  
 1. project_id  
 
-## /obtain_people_with_range
-通过设置人一天产生数据条数的范围, 获取符合这个范围的人群表  
+## /filter_data_with_range
+利用人基于数据量的分布, 过滤数据  
 参数:  
 1. project_id  
 2. count_min  
 3. count_max  
 
-## /people_with_range_stat
-获得指定数据条数范围内的人的个数  
+## /compute_filtered_data_stat
+计算过滤后的每天数据条数  
 参数:  
 1. project_id  
-2. count_min  
-3. count_max  
-
-## /filtered_data_with_range
-利用obtain_people_with_range的到的人群表, 过滤数据  
-参数:  
-1. project_id  
-2. count_min  
-3. count_max  
 
 ## /get_filtered_data_stat
 获取过滤后的每天数据条数  
-参数:  
+参数:   
 1. project_id  
-2. count_min  
-3. count_max  
+
+
+
+
+
+
 
 ### /base_station_info
 启动基站信息抽取  
 
 ### /get_base_station_info
 获取基站信息  
+
+
+
 
 ### /base_station_summary
 启动天粒度基站热力  
@@ -80,6 +100,9 @@
 
 ### /get_base_station_hour_summary
 获取小时粒度基站热力进度  
+
+
+
 
 ### /uuid_cell_hours
 启动计算人的时空聚合信息  
