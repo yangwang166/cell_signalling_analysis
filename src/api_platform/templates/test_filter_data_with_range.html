@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+	<head><title>测试根据人基于数据量分布过滤数据</title></head>
+	<body>
+		<h1>输入参数</h1>
+		<form method="post" action="/filter_data_with_range">
+		<p>项目ID<br><input type="text" name="project_id"></p>
+		<p>数据分区(日期)<br><input type="text" name="date_p"></p>
+		<p>人一天数据量下限<br><input type="text" name="count_min"></p>
+		<p>人一天数据量上限<br><input type="text" name="count_max"></p>
+		<input type="submit">
+		</form>
+	</body>
+</html>

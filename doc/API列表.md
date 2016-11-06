@@ -60,9 +60,10 @@
 ## /filter_data_with_range
 利用人基于数据量的分布, 过滤数据  
 参数:  
-1. project_id  
-2. count_min  
-3. count_max  
+1. project_id
+2. date_p  
+3. count_min  
+4. count_max  
 
 ## /compute_filtered_data_stat
 计算过滤后的每天数据条数  

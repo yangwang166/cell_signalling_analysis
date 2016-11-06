@@ -54,6 +54,16 @@ class Application(tornado.web.Application):
                 TestComputePeopleDistributionHandler),
               (r'/test_get_people_distribution', 
                 TestGetPeopleDistributionHandler),
+              (r'/test_compute_raw_data_stat', 
+                TestComputeRawDataStatHandler),
+              (r'/test_get_raw_data_stat', 
+                TestGetRawDataStatHandler),
+              (r'/test_filter_data_with_range', 
+                TestFilterDataWithRangeHandler),
+              (r'/test_compute_filtered_data_stat', 
+                TestComputeFilteredDataStatHandler),
+              (r'/test_get_filtered_data_stat', 
+                TestGetFilteredDataStatHandler),
               (r'/upload_data', 
                 UploadHandler),
               (r'/create_customer_raw_data', 
@@ -66,6 +76,16 @@ class Application(tornado.web.Application):
                 ComputePeopleDistributionHandler),
               (r'/get_people_distribution', 
                 GetPeopleDistributionHandler),
+              (r'/compute_raw_data_stat', 
+                ComputeRawDataStatHandler),
+              (r'/get_raw_data_stat', 
+                GetRawDataStatHandler),
+              (r'/filter_data_with_range', 
+                FilterDataWithRangeHandler),
+              (r'/compute_filtered_data_stat', 
+                ComputeFilteredDataStatHandler),
+              (r'/get_filtered_data_stat', 
+                GetFilteredDataStatHandler),
              ]
     settings = dict(
       template_path=os.path.join(os.path.dirname(__file__), "templates"),
@@ -100,6 +120,26 @@ class TestComputePeopleDistributionHandler(tornado.web.RequestHandler):
 class TestGetPeopleDistributionHandler(tornado.web.RequestHandler):
   def get(self):
     self.render('test_get_people_distribution.html')
+
+class TestComputeRawDataStatHandler(tornado.web.RequestHandler):
+  def get(self):
+    self.render('test_compute_raw_data_stat.html')
+
+class TestGetRawDataStatHandler(tornado.web.RequestHandler):
+  def get(self):
+    self.render('test_get_raw_data_stat.html')
+
+class TestFilterDataWithRangeHandler(tornado.web.RequestHandler):
+  def get(self):
+    self.render('test_filter_data_with_range.html')
+
+class TestComputeFilteredDataStatHandler(tornado.web.RequestHandler):
+  def get(self):
+    self.render('test_compute_filtered_data_stat.html')
+
+class TestGetFilteredDataStatHandler(tornado.web.RequestHandler):
+  def get(self):
+    self.render('test_get_filtered_data_stat.html')
 
 class BaseHandler():
   def runProcess(self, exe):    
@@ -574,6 +614,87 @@ class GetPeopleDistributionHandler(tornado.web.RequestHandler, BaseHandler):
     self.render('get_people_distribution_result.html',
                 project_id = project_id,
                 people_distribution = people_distribution,
+                ret_msg = "Success")
+
+class ComputeRawDataStatHandler(tornado.web.RequestHandler, BaseHandler):
+  def doComputeRawDataStat(self, sql):
+    pass
+  def post(self):
+    # 解析输入的参数
+    self.project_id = self.get_argument('project_id');
+    # 构造阿里云上运行的sql
+    sql = ('select date_p, count(*) as count from ' 
+           '' + self.project_id + '_spatio_temporal_raw_data ' 
+           'group by date_p order by date_p limit 100')
+    plog("sql: " + sql)
+    # 调用阿里云执行sql
+    BaseHandler.runSQL(self, sql, \
+        "compute_raw_data_stat", self.doComputeRawDataStat)
+    # 渲染结果页面
+    self.render('compute_raw_data_stat_result.html',
+                project_id = self.project_id,
+                ret_msg = "Success")
+
+class GetRawDataStatHandler(tornado.web.RequestHandler, BaseHandler):
+  def post(self):
+    # 解析输入的参数
+    project_id = self.get_argument('project_id');
+    result = ""
+    # 渲染结果页面
+    self.render('get_raw_data_stat_result.html',
+                project_id = project_id,
+                result = result,
+                ret_msg = "Success")
+
+class FilterDataWithRangeHandler(tornado.web.RequestHandler, BaseHandler):
+  def doFilterDataWithRange(self, sql):
+    pass
+  def post(self):
+    # 解析输入的参数
+    self.project_id = self.get_argument('project_id');
+    self.date_p = self.get_argument('date_p');
+    self.count_min = self.get_argument('count_min');
+    self.count_max = self.get_argument('count_max');
+    # 构造阿里云上运行的sql
+    sql = "xxx"
+    plog("sql: " + sql)
+    # 调用阿里云执行sql
+    BaseHandler.runSQL(self, sql, \
+        "filter_data_with_range", self.doFilterDataWithRange)
+    # 渲染结果页面
+    self.render('filter_data_with_range_result.html',
+                project_id = self.project_id,
+                date_p = self.date_p,
+                count_min = self.count_min,
+                count_max = self.count_max,
+                ret_msg = "Success")
+
+class ComputeFilteredDataStatHandler(tornado.web.RequestHandler, BaseHandler):
+  def doComputeFilteredDataStat(self, sql):
+    pass
+  def post(self):
+    # 解析输入的参数
+    self.project_id = self.get_argument('project_id');
+    # 构造阿里云上运行的sql
+    sql = "xxx"
+    plog("sql: " + sql)
+    # 调用阿里云执行sql
+    BaseHandler.runSQL(self, sql, \
+        "compute_filtered_data_stat", self.doComputeFilteredDataStat)
+    # 渲染结果页面
+    self.render('compute_filtered_data_stat_result.html',
+                project_id = self.project_id,
+                ret_msg = "Success")
+
+class GetFilteredDataStatHandler(tornado.web.RequestHandler, BaseHandler):
+  def post(self):
+    # 解析输入的参数
+    project_id = self.get_argument('project_id');
+    result = ""
+    # 渲染结果页面
+    self.render('get_filtered_data_stat_result.html',
+                project_id = project_id,
+                result = result,
                 ret_msg = "Success")
 
 if __name__ == '__main__':
