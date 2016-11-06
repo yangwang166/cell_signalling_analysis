@@ -3,8 +3,8 @@
 from odps import ODPS
 import time
 
-access_id = "xO0RtfYLVQEnAuUN"
-access_key = "imNsJiShzQlcNYmDvrEt2hiXsreDro"
+access_id = "xO0RtfYLVQEnAuUN8"
+access_key = "imNsJiShzQlcNYmDvrEt2hiXsreDro6"
 project = "tsnav_project"
 end_point = "http://service.odps.aliyun.com/api"
 odps = ODPS(access_id, access_key, project, end_point)
