@@ -1,12 +1,12 @@
 # 增加一个API的步骤
 
-1. 先确保在client下希望的sql可以执行, 明白自己要做什么  
-2. 在`templates/index.html`中增加对应的测试项  
+* 先确保在client下希望的sql可以执行, 明白自己要做什么  
+* 在`templates/index.html`中增加对应的测试项  
 比如增加人群分布的测试:  
 ```html
 <p><a href="/test_people_distribution">5 测试人基于数据量的分布</a></p>
 ```  
-3. 在`api_platform.py`中增加测试项的相应api  
+* 在`api_platform.py`中增加测试项的相应api  
 在Application的__init__中的handler中增加:  
 ```py
 (r'/test_people_distribution',
@@ -18,7 +18,7 @@ class TestPeopleDistributionHandler(tornado.web.RequestHandler):
   def get(self):
     self.render('test_people_distribution.html')
 ```
-4. 创建`templates/test_people_distribution.html`:
+* 创建`templates/test_people_distribution.html`:
 将需要传递给api的参数通过表单的形式传递给server:
 ```html
 <!DOCTYPE html>
@@ -36,7 +36,7 @@ class TestPeopleDistributionHandler(tornado.web.RequestHandler):
   </body>
 </html>
 ```
-5. 在`api_platform.py`中增加api的相应Handler
+* 在`api_platform.py`中增加api的相应Handler
 注册handler:  
 ```py
 (r'/compute_people_distribution',
@@ -50,7 +50,7 @@ class ComputePeopleDistributionHandler(tornado.web.RequestHandler, BaseHandler):
   def post(self):
     pass
 ```
-6. `post(self)`实现
+* `post(self)`实现
 主体氛围四个步骤:
 ```py
 def post(self):
@@ -80,9 +80,9 @@ def post(self):
               top_n = self.top_n,
               ret_msg = "Success")
 ```
-7. `doComputePeopleDistribution()`实现
+* `doComputePeopleDistribution()`实现
 利用ODPS提供的py接口, 将sql提交到集群计算, 并随时拉取进度。并将进度存入本地数据库。计算结果也存入本地数据库(针对本api)。这个函数具体情况具体分析，不同的api的实现会不同。
-8. 增加task_id定义  
+* 增加task_id定义  
 ```py
 # 定义见文档: 任务进度查询.md
 _task_id = {"create_customer_raw_data_table":1,
@@ -91,7 +91,7 @@ _task_id = {"create_customer_raw_data_table":1,
             "compute_people_distribution":4
           }
 ```
-9. 创建`templates/people_distribution_result.html`
+* 创建`templates/people_distribution_result.html`
 ```html
 <!DOCTYPE html>
 <html>
