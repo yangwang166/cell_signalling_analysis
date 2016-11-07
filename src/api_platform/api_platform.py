@@ -32,7 +32,8 @@ _task_id = {"create_customer_raw_data_table":1,
             "filter_data_with_range":8,
             "compute_filtered_data_stat":9,
             "compute_base_station_hour_summary":10,
-            "download_base_station_hour_summary":11
+            "download_base_station_hour_summary":11,
+            "compute_uuid_cell_hour":12
           }
 
 _project_home = os.path.dirname(os.path.realpath(__file__))
@@ -89,6 +90,10 @@ class Application(tornado.web.Application):
                 TestDownloadBaseStationHourSummaryHandler),
               (r'/test_get_base_station_hour_summary',     # 17
                 TestGetBaseStationHourSummaryHandler),
+              (r'/test_compute_uuid_cell_hour',            # 18
+                TestComputeUuidCellHourHandler),
+              (r'/test_get_uuid_cell_hour',                # 19
+                TestGetUuidCellHourHandler),
 
               (r'/upload_data',                            # 1
                 UploadHandler),
@@ -124,6 +129,10 @@ class Application(tornado.web.Application):
                 DownloadBaseStationHourSummaryHandler),
               (r'/get_base_station_hour_summary',          # 17
                 GetBaseStationHourSummaryHandler),
+              (r'/compute_uuid_cell_hour',                 # 18
+                ComputeUuidCellHourHandler),
+              (r'/get_uuid_cell_hour',                     # 18
+                GetUuidCellHourHandler),
              ]
     settings = dict(
       template_path=os.path.join(os.path.dirname(__file__), "templates"),
@@ -203,6 +212,14 @@ class TestDownloadBaseStationHourSummaryHandler(tornado.web.RequestHandler):
 class TestGetBaseStationHourSummaryHandler(tornado.web.RequestHandler):
   def get(self):
     self.render('test_get_base_station_hour_summary.html')
+
+class TestComputeUuidCellHourHandler(tornado.web.RequestHandler):
+  def get(self):
+    self.render('test_compute_uuid_cell_hour.html')
+
+class TestGetUuidCellHourHandler(tornado.web.RequestHandler):
+  def get(self):
+    self.render('test_get_uuid_cell_hour.html')
 
 class BaseHandler():
   def runProcess(self, exe):    
@@ -1389,6 +1406,98 @@ class GetBaseStationHourSummaryHandler(tornado.web.RequestHandler, BaseHandler):
     self.render('get_base_station_hour_summary_result.html',
                 project_id = project_id,
                 result = _download_folder,
+                ret_msg = "Success")
+
+class ComputeUuidCellHourHandler(tornado.web.RequestHandler, BaseHandler):
+  def doComputeUuidCellHour(self, sql1, sql2):
+    name = multiprocessing.current_process().name
+    plog(name + " " + "Starting")
+    progress = 0
+    # 建立数据库连接
+    db_client = MongoClient('localhost', 27017)
+    db = db_client[self.project_id + "_db"]
+    collection = db["task-progress"]
+    count = 0;
+    result = collection.delete_many({
+             "project_id": self.project_id,
+             "task_id": _task_id["compute_uuid_cell_hour"]})
+    result = collection.insert_one(
+        { "project_id" : self.project_id,
+          "task_id" : _task_id["compute_uuid_cell_hour"],
+          "progress" : progress,
+          "lastModified" : datetime.datetime.utcnow()
+        }
+    )
+    plog("result.inserted_id: " + str(result.inserted_id))
+    instance1 = odps.run_sql(sql1)
+    while(not instance1.is_successful()):
+      time.sleep(1) 
+    plog("sql1 runs Successful")
+    instance2 = odps.run_sql(sql2)
+    while(not instance2.is_successful()):
+      count += 1
+      progress = int((1.0 * count / (count + 1)) * 100)
+      plog("progress: " + str(progress) + "%")
+      result = collection.update_one(
+        {"project_id" : self.project_id, 
+          "task_id" : _task_id["compute_uuid_cell_hour"] },
+        {
+          "$set": {
+            "progress": progress 
+          },
+          "$currentDate": {"lastModified": True}
+        }
+      )
+      time.sleep(5) 
+    db_client.close()
+    progress = 100
+    plog("progress: " + str(progress) + "%")
+    result = collection.update_one(
+      {"project_id" : self.project_id, 
+        "task_id" : _task_id["compute_uuid_cell_hour"] },
+      {
+        "$set": {
+          "progress": progress 
+        },
+        "$currentDate": {"lastModified": True}
+      }
+    )
+    plog("result.matched_count: "+str(result.matched_count))
+    plog("result.modified_count: "+str(result.modified_count))
+  def post(self):
+    # 解析输入的参数
+    self.project_id = self.get_argument('project_id');
+    # 构造阿里云上运行的sql
+    sql1 = ('create table if not exists ' 
+            '' + self.project_id + '_uuid_cell_hour '
+            '(uuid string, cell_hour string)'
+            'partitioned by (date_p string);')
+    sql2 = ('insert overwrite table '
+            '' + self.project_id + '_uuid_cell_hour '
+            'partition(date_p) '
+            'select uuid, '
+            'agg_cell_hour(bs_id, datepart(from_unixtime(time), "HH")) as ' 
+            'cell_hour, date_p from ' + self.project_id + '_filtered_raw_data '
+            'group by uuid, date_p')
+    plog("sql1: " + sql1)
+    plog("sql2: " + sql2)
+    # 调用阿里云执行sql
+    BaseHandler.runSQL2(self, sql1, sql2, \
+        "compute_uuid_cell_hour", \
+        self.doComputeUuidCellHour)
+    # 渲染结果页面
+    self.render('compute_uuid_cell_hour_result.html',
+                project_id = self.project_id,
+                ret_msg = "Success")
+
+class GetUuidCellHourHandler(tornado.web.RequestHandler, BaseHandler):
+  def post(self):
+    # 解析输入的参数
+    project_id = self.get_argument('project_id');
+    # 渲染结果页面
+    self.render('get_uuid_cell_hour_result.html',
+                project_id = project_id,
+                result = project_id + "_uuid_cell_hour",
                 ret_msg = "Success")
 
 if __name__ == '__main__':

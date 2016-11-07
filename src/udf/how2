@@ -1,0 +1,1 @@
+mvn archetype:generate -DgroupId=com.tsnav.udf

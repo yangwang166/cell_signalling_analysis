@@ -111,7 +111,17 @@
 1. project_id  
 返回小时粒度激战数据的本地存放路径  
 
-## 18 /compute_uuid_cell_hours [TODO]
+## 18 /compute_uuid_cell_hours [ok]
 启动计算人的时空聚合信息, 会返回阿里云上的对应表  
+参数:  
+1. project_id  
+
+## 18 /compute_uuid_cell_hours [ok]
+启动计算人的时空聚合信息, 会返回阿里云上的对应表  
+参数:  
+1. project_id  
+
+## 19 /get_uuid_cell_hours [ok]
+获取阿里云上的时空表表名
 参数:  
 1. project_id  
