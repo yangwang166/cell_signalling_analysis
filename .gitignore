@@ -6,3 +6,4 @@ data/
 target/
 db/
 tool/odps/plugins/dship/sessions/
+downloads/

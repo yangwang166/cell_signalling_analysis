@@ -25,11 +25,20 @@ _odps_client = "/Users/willwywang-NB/"+\
 _task_id = {"create_customer_raw_data_table":1,
             "upload_customer_raw_data":2,
             "transform_to_spatio_temporal_raw_data":3,
-            "compute_people_distribution":4,
-            "compute_raw_data_stat":5,
-            "filter_data_with_range":6,
-            "compute_filtered_data_stat":7
+            "compute_raw_data_stat":4,
+            "compute_people_distribution":5,
+            "compute_base_station_info":6,
+            "download_base_station_info":7,
+            "filter_data_with_range":8,
+            "compute_filtered_data_stat":9,
+            "compute_base_station_hour_summary":10,
+            "download_base_station_hour_summary":11
           }
+
+_project_home = os.path.dirname(os.path.realpath(__file__))
+_download_folder = _project_home + "/downloads"
+if not os.path.exists(_download_folder):
+    os.makedirs(_download_folder)
 
 access_id = "xO0RtfYLVQEnAuUN"
 access_key = "imNsJiShzQlcNYmDvrEt2hiXsreDro"
@@ -45,50 +54,76 @@ class Application(tornado.web.Application):
     handlers=[
               (r'/', 
                 IndexHandler),
-              (r'/test_upload', 
+
+              (r'/test_upload',                            # 1
                 TestUploadHandler), 
-              (r'/test_create_customer_raw_data', 
+              (r'/test_create_customer_raw_data',          # 2
                 TestCreateCustomerRawDataTableHandler),
-              (r'/test_request_task_progress', 
+              (r'/test_request_task_progress',             # 3
                 TestRequestTaskProgressHandler),
-              (r'/test_transform_to_inner_format', 
+              (r'/test_transform_to_inner_format',         # 4
                 TestTransformToInnerFormatHandler),
-              (r'/test_compute_people_distribution', 
-                TestComputePeopleDistributionHandler),
-              (r'/test_get_people_distribution', 
-                TestGetPeopleDistributionHandler),
-              (r'/test_compute_raw_data_stat', 
+              (r'/test_compute_raw_data_stat',             # 5
                 TestComputeRawDataStatHandler),
-              (r'/test_get_raw_data_stat', 
+              (r'/test_get_raw_data_stat',                 # 6
                 TestGetRawDataStatHandler),
-              (r'/test_filter_data_with_range', 
+              (r'/test_compute_people_distribution',       # 7
+                TestComputePeopleDistributionHandler),
+              (r'/test_get_people_distribution',           # 8
+                TestGetPeopleDistributionHandler),
+              (r'/test_compute_base_station_info',         # 9
+                TestComputeBaseStationInfoHandler),
+              (r'/test_download_base_station_info',        # 10
+                TestDownloadBaseStationInfoHandler),
+              (r'/test_get_base_station_info',             # 11
+                TestGetBaseStationInfoHandler),
+              (r'/test_filter_data_with_range',            # 12
                 TestFilterDataWithRangeHandler),
-              (r'/test_compute_filtered_data_stat', 
+              (r'/test_compute_filtered_data_stat',        # 13
                 TestComputeFilteredDataStatHandler),
-              (r'/test_get_filtered_data_stat', 
+              (r'/test_get_filtered_data_stat',            # 14
                 TestGetFilteredDataStatHandler),
-              (r'/upload_data', 
+              (r'/test_compute_base_station_hour_summary', # 15
+                TestComputeBaseStationHourSummaryHandler),
+              (r'/test_download_base_station_hour_summary',# 16
+                TestDownloadBaseStationHourSummaryHandler),
+              (r'/test_get_base_station_hour_summary',     # 17
+                TestGetBaseStationHourSummaryHandler),
+
+              (r'/upload_data',                            # 1
                 UploadHandler),
-              (r'/create_customer_raw_data', 
+              (r'/create_customer_raw_data',               # 2
                 CreateCustomerRawDataHandler),
-              (r'/request_task_progress', 
+              (r'/request_task_progress',                  # 3
                 RequestTaskProgressHandler),
-              (r'/transform_to_inner_format', 
+              (r'/transform_to_inner_format',              # 4
                 TransformToInnerFormatHandler),
-              (r'/compute_people_distribution', 
-                ComputePeopleDistributionHandler),
-              (r'/get_people_distribution', 
-                GetPeopleDistributionHandler),
-              (r'/compute_raw_data_stat', 
+              (r'/compute_raw_data_stat',                  # 5
                 ComputeRawDataStatHandler),
-              (r'/get_raw_data_stat', 
+              (r'/get_raw_data_stat',                      # 6
                 GetRawDataStatHandler),
-              (r'/filter_data_with_range', 
+              (r'/compute_people_distribution',            # 7
+                ComputePeopleDistributionHandler),
+              (r'/get_people_distribution',                # 8
+                GetPeopleDistributionHandler),
+              (r'/compute_base_station_info',              # 9
+                ComputeBaseStationInfoHandler),
+              (r'/download_base_station_info',             # 10
+                DownloadBaseStationInfoHandler),
+              (r'/get_base_station_info',                  # 11
+                GetBaseStationInfoHandler),
+              (r'/filter_data_with_range',                 # 12
                 FilterDataWithRangeHandler),
-              (r'/compute_filtered_data_stat', 
+              (r'/compute_filtered_data_stat',             # 13
                 ComputeFilteredDataStatHandler),
-              (r'/get_filtered_data_stat', 
+              (r'/get_filtered_data_stat',                 # 14
                 GetFilteredDataStatHandler),
+              (r'/compute_base_station_hour_summary',      # 15
+                ComputeBaseStationHourSummaryHandler),
+              (r'/download_base_station_hour_summary',     # 16
+                DownloadBaseStationHourSummaryHandler),
+              (r'/get_base_station_hour_summary',          # 17
+                GetBaseStationHourSummaryHandler),
              ]
     settings = dict(
       template_path=os.path.join(os.path.dirname(__file__), "templates"),
@@ -116,6 +151,15 @@ class TestTransformToInnerFormatHandler(tornado.web.RequestHandler):
   def get(self):
     self.render('test_transform_to_inner_format.html')
 
+class TestComputeRawDataStatHandler(tornado.web.RequestHandler):
+  def get(self):
+    self.render('test_compute_raw_data_stat.html')
+
+class TestGetRawDataStatHandler(tornado.web.RequestHandler):
+  def get(self):
+    self.render('test_get_raw_data_stat.html')
+
+
 class TestComputePeopleDistributionHandler(tornado.web.RequestHandler):
   def get(self):
     self.render('test_compute_people_distribution.html')
@@ -124,13 +168,17 @@ class TestGetPeopleDistributionHandler(tornado.web.RequestHandler):
   def get(self):
     self.render('test_get_people_distribution.html')
 
-class TestComputeRawDataStatHandler(tornado.web.RequestHandler):
+class TestComputeBaseStationInfoHandler(tornado.web.RequestHandler):
   def get(self):
-    self.render('test_compute_raw_data_stat.html')
+    self.render('test_compute_base_station_info.html')
 
-class TestGetRawDataStatHandler(tornado.web.RequestHandler):
+class TestDownloadBaseStationInfoHandler(tornado.web.RequestHandler):
   def get(self):
-    self.render('test_get_raw_data_stat.html')
+    self.render('test_download_base_station_info.html')
+
+class TestGetBaseStationInfoHandler(tornado.web.RequestHandler):
+  def get(self):
+    self.render('test_get_base_station_info.html')
 
 class TestFilterDataWithRangeHandler(tornado.web.RequestHandler):
   def get(self):
@@ -143,6 +191,18 @@ class TestComputeFilteredDataStatHandler(tornado.web.RequestHandler):
 class TestGetFilteredDataStatHandler(tornado.web.RequestHandler):
   def get(self):
     self.render('test_get_filtered_data_stat.html')
+
+class TestComputeBaseStationHourSummaryHandler(tornado.web.RequestHandler):
+  def get(self):
+    self.render('test_compute_base_station_hour_summary.html')
+
+class TestDownloadBaseStationHourSummaryHandler(tornado.web.RequestHandler):
+  def get(self):
+    self.render('test_download_base_station_hour_summary.html')
+
+class TestGetBaseStationHourSummaryHandler(tornado.web.RequestHandler):
+  def get(self):
+    self.render('test_get_base_station_hour_summary.html')
 
 class BaseHandler():
   def runProcess(self, exe):    
@@ -490,6 +550,127 @@ class TransformToInnerFormatHandler(tornado.web.RequestHandler, BaseHandler):
                 fields_raw = fields_raw,
                 ret_msg = "Success")
 
+class ComputeRawDataStatHandler(tornado.web.RequestHandler, BaseHandler):
+  def processResult(self, raw):
+    result = raw.split("\n")[1:-1]
+    new_result = []
+    for pair in result:
+      date_p = pair.split(",")[0][1:-1]
+      count = pair.split(",")[1]
+      new_result.append("" + str(date_p) + "," + count)
+    result_str = '#'.join(new_result)
+    plog("Raw stat: " + str(result_str))
+    return result_str
+  def doComputeRawDataStat(self, sql):
+    name = multiprocessing.current_process().name
+    plog(name + " " + "Starting")
+    progress = 0
+    # 建立数据库连接
+    db_client = MongoClient('localhost', 27017)
+    db = db_client[self.project_id + "_db"]
+    collection = db["task-progress"]
+    count = 0;
+    result = collection.delete_many({
+             "project_id": self.project_id,
+             "task_id": _task_id["compute_raw_data_stat"]})
+    result = collection.insert_one(
+        { "project_id" : self.project_id,
+          "task_id" : _task_id["compute_raw_data_stat"],
+          "progress" : progress,
+          "lastModified" : datetime.datetime.utcnow()
+        }
+    )
+    plog("result.inserted_id: " + str(result.inserted_id))
+    instance = odps.run_sql(sql)
+    while(not instance.is_successful()):
+      count += 1
+      progress = int((1.0 * count / (count + 1)) * 100)
+      plog("progress: " + str(progress) + "%")
+      result = collection.update_one(
+        {"project_id" : self.project_id, 
+          "task_id" : _task_id["compute_raw_data_stat"] },
+        {
+          "$set": {
+            "progress": progress 
+          },
+          "$currentDate": {"lastModified": True}
+        }
+      )
+      time.sleep(5) 
+    raw_result = instance.get_task_result(instance.get_task_names()[0])
+    collection2 = db["local-result"]
+    raw_stat = self.processResult(raw_result)
+    result = collection2.delete_many({
+             "project_id": self.project_id,
+             "task_id": _task_id["compute_raw_data_stat"]})
+    result = collection2.insert_one(
+        { "project_id" : self.project_id,
+          "task_id" : _task_id["compute_raw_data_stat"],
+          "result" : raw_stat,
+          "lastModified" : datetime.datetime.utcnow()
+        }
+    )
+    progress = 100
+    plog("progress: " + str(progress) + "%")
+    result = collection.update_one(
+      {"project_id" : self.project_id, 
+        "task_id" : _task_id["compute_raw_data_stat"] },
+      {
+        "$set": {
+          "progress": progress 
+        },
+        "$currentDate": {"lastModified": True}
+      }
+    )
+    db_client.close()
+    plog("result.matched_count: "+str(result.matched_count))
+    plog("result.modified_count: "+str(result.modified_count))
+  def post(self):
+    # 解析输入的参数
+    self.project_id = self.get_argument('project_id');
+    # 构造阿里云上运行的sql
+    sql = ('select date_p, count(*) as count from ' 
+           '' + self.project_id + '_spatio_temporal_raw_data ' 
+           'group by date_p order by date_p limit 100')
+    plog("sql: " + sql)
+    # 调用阿里云执行sql
+    BaseHandler.runSQL(self, sql, \
+        "compute_raw_data_stat", self.doComputeRawDataStat)
+    # 渲染结果页面
+    self.render('compute_raw_data_stat_result.html',
+                project_id = self.project_id,
+                ret_msg = "Success")
+
+class GetRawDataStatHandler(tornado.web.RequestHandler, BaseHandler):
+  def post(self):
+    # 解析输入的参数
+    project_id = self.get_argument('project_id');
+    result = ""
+    # 查询本地数据库
+    db_client = MongoClient('localhost', 27017)
+    db = db_client[project_id + "_db"]
+    collection = db["local-result"]
+    cursor = collection.find({"project_id": project_id,
+                             "task_id": _task_id["compute_raw_data_stat"]})
+    plog("cursor.count(): " + str(cursor.count()))
+    if(cursor.count() == 1):
+      raw_stat = cursor.next()["result"]
+    else:
+      plog("Warning: project_id: " + project_id + ", task_id: " + task_id
+           + " has more than one progess record")
+      raw_stat = ""
+      self.render('get_raw_data_stat_result.html',
+                  project_id = project_id,
+                  result = raw_stat,
+                  ret_msg = "Error")
+    db_client.close()
+    plog("Get raw stat: " + str(raw_stat))
+    # 渲染结果页面
+    self.render('get_raw_data_stat_result.html',
+                project_id = project_id,
+                result = raw_stat,
+                ret_msg = "Success")
+
 class ComputePeopleDistributionHandler(tornado.web.RequestHandler, BaseHandler):
   def processResult(self, raw):
     result = raw.split("\n")[1:-1]
@@ -647,18 +828,80 @@ class GetPeopleDistributionHandler(tornado.web.RequestHandler, BaseHandler):
                 top_n = top_n,
                 ret_msg = "Success")
 
-class ComputeRawDataStatHandler(tornado.web.RequestHandler, BaseHandler):
-  def processResult(self, raw):
-    result = raw.split("\n")[1:-1]
-    new_result = []
-    for pair in result:
-      date_p = pair.split(",")[0][1:-1]
-      count = pair.split(",")[1]
-      new_result.append("" + str(date_p) + "," + count)
-    result_str = '#'.join(new_result)
-    plog("Raw stat: " + str(result_str))
-    return result_str
-  def doComputeRawDataStat(self, sql):
+class DownloadBaseStationInfoHandler(tornado.web.RequestHandler, BaseHandler):
+  def doDownloadBaseStationInfo(self, exe):
+    name = multiprocessing.current_process().name
+    plog(name + " " + "Starting")
+    progress = 0
+    count = 0
+    db_client = MongoClient('localhost', 27017)
+    db = db_client[self.project_id + "_db"]
+    collection = db["task-progress"]
+    result = collection.delete_many({
+             "project_id": self.project_id,
+             "task_id": _task_id["download_base_station_info"]})
+    result = collection.insert_one(
+        { "project_id" : self.project_id,
+          "task_id" : _task_id["download_base_station_info"],
+          "progress" : progress,
+          "lastModified" : datetime.datetime.utcnow()
+        }
+    )
+    for line in BaseHandler.runProcess(self, exe):
+      print line,
+      # extract upload progess and total block
+      if "file" in line:
+        count += 1
+        progress = int((1.0 * count / (count + 1)) * 100)
+        plog("progress: " + str(progress) + "%")
+        result = collection.update_one(
+          {"project_id" : self.project_id, 
+            "task_id" : _task_id["download_base_station_info"] },
+          {
+            "$set": {
+              "progress": progress 
+            },
+            "$currentDate": {"lastModified": True}
+          }
+        )
+        plog("result.matched_count: "+str(result.matched_count))
+        plog("result.modified_count: "+str(result.modified_count))
+      elif "download OK" in line:
+        progress = 100
+        plog("progress: " + str(progress) + "%")
+        result = collection.update_one(
+          {"project_id" : self.project_id, 
+            "task_id" : _task_id["download_base_station_info"] },
+          {
+            "$set": {
+              "progress": progress 
+            },
+            "$currentDate": {"lastModified": True}
+          }
+        )
+        plog("result.matched_count: "+str(result.matched_count))
+        plog("result.modified_count: "+str(result.modified_count))
+    plog(name+" Exiting")
+    db_client.close()
+  def post(self):
+    # 解析输入的参数
+    self.project_id = self.get_argument('project_id');
+    download_cmd = ('tunnel download ' + self.project_id +
+                    '_base_station_info ' + _download_folder + '/'
+                    '' + self.project_id + '_base_station_info.csv ' 
+                    '-h true;')
+    plog("download_cmd: " + download_cmd)
+    # 调用阿里云执行
+    BaseHandler.runCmd(self, download_cmd,  \
+        "download_base_station_info", \
+        self.doDownloadBaseStationInfo)
+    # 渲染结果页面
+    self.render('compute_base_station_info_result.html',
+                project_id = self.project_id,
+                ret_msg = "Success")
+
+class ComputeBaseStationInfoHandler(tornado.web.RequestHandler, BaseHandler):
+  def doComputeBaseStationInfo(self, sql1, sql2):
     name = multiprocessing.current_process().name
     plog(name + " " + "Starting")
     progress = 0
@@ -669,23 +912,27 @@ class ComputeRawDataStatHandler(tornado.web.RequestHandler, BaseHandler):
     count = 0;
     result = collection.delete_many({
              "project_id": self.project_id,
-             "task_id": _task_id["compute_raw_data_stat"]})
+             "task_id": _task_id["compute_base_station_info"]})
     result = collection.insert_one(
         { "project_id" : self.project_id,
-          "task_id" : _task_id["compute_raw_data_stat"],
+          "task_id" : _task_id["compute_base_station_info"],
           "progress" : progress,
           "lastModified" : datetime.datetime.utcnow()
         }
     )
     plog("result.inserted_id: " + str(result.inserted_id))
-    instance = odps.run_sql(sql)
-    while(not instance.is_successful()):
+    instance1 = odps.run_sql(sql1)
+    while(not instance1.is_successful()):
+      time.sleep(1) 
+    plog("sql1 runs Successful")
+    instance2 = odps.run_sql(sql2)
+    while(not instance2.is_successful()):
       count += 1
       progress = int((1.0 * count / (count + 1)) * 100)
       plog("progress: " + str(progress) + "%")
       result = collection.update_one(
         {"project_id" : self.project_id, 
-          "task_id" : _task_id["compute_raw_data_stat"] },
+          "task_id" : _task_id["compute_base_station_info"] },
         {
           "$set": {
             "progress": progress 
@@ -694,24 +941,11 @@ class ComputeRawDataStatHandler(tornado.web.RequestHandler, BaseHandler):
         }
       )
       time.sleep(5) 
-    raw_result = instance.get_task_result(instance.get_task_names()[0])
-    collection2 = db["local-result"]
-    raw_stat = self.processResult(raw_result)
-    result = collection2.delete_many({
-             "project_id": self.project_id,
-             "task_id": _task_id["compute_raw_data_stat"]})
-    result = collection2.insert_one(
-        { "project_id" : self.project_id,
-          "task_id" : _task_id["compute_raw_data_stat"],
-          "result" : raw_stat,
-          "lastModified" : datetime.datetime.utcnow()
-        }
-    )
     progress = 100
     plog("progress: " + str(progress) + "%")
     result = collection.update_one(
       {"project_id" : self.project_id, 
-        "task_id" : _task_id["compute_raw_data_stat"] },
+        "task_id" : _task_id["compute_base_station_info"] },
       {
         "$set": {
           "progress": progress 
@@ -726,46 +960,33 @@ class ComputeRawDataStatHandler(tornado.web.RequestHandler, BaseHandler):
     # 解析输入的参数
     self.project_id = self.get_argument('project_id');
     # 构造阿里云上运行的sql
-    sql = ('select date_p, count(*) as count from ' 
-           '' + self.project_id + '_spatio_temporal_raw_data ' 
-           'group by date_p order by date_p limit 100')
-    plog("sql: " + sql)
+    sql1 = ('create table if not exists ' 
+            '' + self.project_id + '_base_station_info'
+            '(id bigint, lon double, lat double)') 
+    sql2 = ('insert overwrite table ' 
+            '' + self.project_id + '_base_station_info '
+            'select row_number() over(partition by A.tmp order by A.tmp) as id,'
+            'A.lon, A.lat '
+            'from (select distinct lon, lat, 1 as tmp '
+            'from ' + self.project_id + '_filtered_raw_data) A;')
+    plog("sql1: " + sql1)
+    plog("sql2: " + sql2)
     # 调用阿里云执行sql
-    BaseHandler.runSQL(self, sql, \
-        "compute_raw_data_stat", self.doComputeRawDataStat)
+    BaseHandler.runSQL2(self, sql1, sql2, \
+        "compute_raw_data_stat", self.doComputeBaseStationInfo)
     # 渲染结果页面
-    self.render('compute_raw_data_stat_result.html',
+    self.render('compute_base_station_info_result.html',
                 project_id = self.project_id,
                 ret_msg = "Success")
 
-class GetRawDataStatHandler(tornado.web.RequestHandler, BaseHandler):
+class GetBaseStationInfoHandler(tornado.web.RequestHandler, BaseHandler):
   def post(self):
     # 解析输入的参数
     project_id = self.get_argument('project_id');
-    result = ""
-    # 查询本地数据库
-    db_client = MongoClient('localhost', 27017)
-    db = db_client[project_id + "_db"]
-    collection = db["local-result"]
-    cursor = collection.find({"project_id": project_id,
-                             "task_id": _task_id["compute_raw_data_stat"]})
-    plog("cursor.count(): " + str(cursor.count()))
-    if(cursor.count() == 1):
-      raw_stat = cursor.next()["result"]
-    else:
-      plog("Warning: project_id: " + project_id + ", task_id: " + task_id
-           + " has more than one progess record")
-      raw_stat = ""
-      self.render('get_raw_data_stat_result.html',
-                  project_id = project_id,
-                  result = raw_stat,
-                  ret_msg = "Error")
-    db_client.close()
-    plog("Get raw stat: " + str(raw_stat))
     # 渲染结果页面
     self.render('get_raw_data_stat_result.html',
                 project_id = project_id,
-                result = raw_stat,
+                result = _download_folder,
                 ret_msg = "Success")
 
 class FilterDataWithRangeHandler(tornado.web.RequestHandler, BaseHandler):
@@ -835,19 +1056,24 @@ class FilterDataWithRangeHandler(tornado.web.RequestHandler, BaseHandler):
     # 构造阿里云上运行的sql
     sql1 = ('Create table if not exists ' 
            '' + self.project_id + '_filtered_raw_data '
-           '(uuid string, lon double, lat double, time bigint, count bigint) '
+           '(uuid string, lon double, lat double, bs_id bigint, '
+           'time bigint, count bigint) '
            'partitioned by (date_p string);')
     sql2 = ('insert overwrite table ' + self.project_id + '_filtered_raw_data '
            'partition(date_p) '
-           'select A.uuid, A.lon, A.lat, A.time, B.count, A.date_p '
-           'from ' + self.project_id + '_spatio_temporal_raw_data A '
-           'inner join '
-           '(select uuid, count(uuid) as count '
-           'from ' + self.project_id + '_spatio_temporal_raw_data '
-           'group by uuid '
-           'having count(uuid) > ' + self.count_min + ' '
-           'and count(uuid) < ' + self.count_max + ') B '
-           'on A.uuid = B.uuid;')
+           'select C.uuid, C.lon, C.lat, D.id as bs_id, C.time, '
+           'C.count, C.date_p from '
+           '  (select A.uuid, A.lon, A.lat, A.time, B.count, A.date_p '
+           '  from ' + self.project_id + '_spatio_temporal_raw_data A '
+           '  inner join '
+           '  (select uuid, count(uuid) as count '
+           '  from ' + self.project_id + '_spatio_temporal_raw_data '
+           '  group by uuid '
+           '  having count(uuid) > ' + self.count_min + ' '
+           '  and count(uuid) < ' + self.count_max + ') B '
+           '  on A.uuid = B.uuid) C '
+           'left outer join ' + self.project_id + '_base_station_info D '
+           'on C.lon = D.lon and C.lat = D.lat;')
     plog("sql1: " + sql1)
     plog("sql2: " + sql2)
     # 调用阿里云执行sql
@@ -994,6 +1220,175 @@ class GetFilteredDataStatHandler(tornado.web.RequestHandler, BaseHandler):
     self.render('get_filtered_data_stat_result.html',
                 project_id = project_id,
                 result = filtered_stat,
+                ret_msg = "Success")
+
+class ComputeBaseStationHourSummaryHandler(tornado.web.RequestHandler, 
+                                           BaseHandler):
+  def doComputeBaseStationHourSummary(self, sql1, sql2):
+    name = multiprocessing.current_process().name
+    plog(name + " " + "Starting")
+    progress = 0
+    # 建立数据库连接
+    db_client = MongoClient('localhost', 27017)
+    db = db_client[self.project_id + "_db"]
+    collection = db["task-progress"]
+    count = 0;
+    result = collection.delete_many({
+             "project_id": self.project_id,
+             "task_id": _task_id["compute_base_station_hour_summary"]})
+    result = collection.insert_one(
+        { "project_id" : self.project_id,
+          "task_id" : _task_id["compute_base_station_hour_summary"],
+          "progress" : progress,
+          "lastModified" : datetime.datetime.utcnow()
+        }
+    )
+    plog("result.inserted_id: " + str(result.inserted_id))
+    instance1 = odps.run_sql(sql1)
+    while(not instance1.is_successful()):
+      time.sleep(1) 
+    plog("sql1 runs Successful")
+    instance2 = odps.run_sql(sql2)
+    while(not instance2.is_successful()):
+      count += 1
+      progress = int((1.0 * count / (count + 1)) * 100)
+      plog("progress: " + str(progress) + "%")
+      result = collection.update_one(
+        {"project_id" : self.project_id, 
+          "task_id" : _task_id["compute_base_station_hour_summary"] },
+        {
+          "$set": {
+            "progress": progress 
+          },
+          "$currentDate": {"lastModified": True}
+        }
+      )
+      time.sleep(5) 
+    db_client.close()
+    progress = 100
+    plog("progress: " + str(progress) + "%")
+    result = collection.update_one(
+      {"project_id" : self.project_id, 
+        "task_id" : _task_id["compute_base_station_hour_summary"] },
+      {
+        "$set": {
+          "progress": progress 
+        },
+        "$currentDate": {"lastModified": True}
+      }
+    )
+    plog("result.matched_count: "+str(result.matched_count))
+    plog("result.modified_count: "+str(result.modified_count))
+  def post(self):
+    # 解析输入的参数
+    self.project_id = self.get_argument('project_id');
+    # 构造阿里云上运行的sql
+    sql1 = ('create table if not exists ' 
+            '' + self.project_id + '_base_station_hour_summary '
+            '(lon double, lat double, bs_id bigint, hour bigint, count bigint)'
+            'partitioned by (date_p string);')
+    sql2 = ('insert overwrite table '
+            '' + self.project_id + '_base_station_hour_summary '
+            'partition(date_p) '
+            'select lon, lat, bs_id, '
+            'datepart(from_unixtime(time), "HH") as hour,'
+            'count(*) as count, date_p '
+            'from ' + self.project_id + '_filtered_raw_data '
+            'group by lon, lat, bs_id, datepart(from_unixtime(time), "HH"), '
+            'date_p;')
+    plog("sql1: " + sql1)
+    plog("sql2: " + sql2)
+    # 调用阿里云执行sql
+    BaseHandler.runSQL2(self, sql1, sql2, \
+        "compute_base_station_hour_summary", \
+        self.doComputeBaseStationHourSummary)
+    # 渲染结果页面
+    self.render('compute_base_station_hour_summary_result.html',
+                project_id = self.project_id,
+                ret_msg = "Success")
+
+class DownloadBaseStationHourSummaryHandler(tornado.web.RequestHandler, 
+                                           BaseHandler):
+  def doDownloadBaseStationHourSummary(self, exe):
+    name = multiprocessing.current_process().name
+    plog(name + " " + "Starting")
+    progress = 0
+    count = 0
+    db_client = MongoClient('localhost', 27017)
+    db = db_client[self.project_id + "_db"]
+    collection = db["task-progress"]
+    result = collection.delete_many({
+             "project_id": self.project_id,
+             "task_id": _task_id["download_base_station_hour_summary"]})
+    result = collection.insert_one(
+        { "project_id" : self.project_id,
+          "task_id" : _task_id["download_base_station_hour_summary"],
+          "progress" : progress,
+          "lastModified" : datetime.datetime.utcnow()
+        }
+    )
+    for line in BaseHandler.runProcess(self, exe):
+      print line,
+      # extract upload progess and total block
+      if "file" in line:
+        count += 1
+        progress = int((1.0 * count / (count + 1)) * 100)
+        plog("progress: " + str(progress) + "%")
+        result = collection.update_one(
+          {"project_id" : self.project_id, 
+            "task_id" : _task_id["download_base_station_hour_summary"] },
+          {
+            "$set": {
+              "progress": progress 
+            },
+            "$currentDate": {"lastModified": True}
+          }
+        )
+        plog("result.matched_count: "+str(result.matched_count))
+        plog("result.modified_count: "+str(result.modified_count))
+      elif "download OK" in line:
+        progress = 100
+        plog("progress: " + str(progress) + "%")
+        result = collection.update_one(
+          {"project_id" : self.project_id, 
+            "task_id" : _task_id["download_base_station_hour_summary"] },
+          {
+            "$set": {
+              "progress": progress 
+            },
+            "$currentDate": {"lastModified": True}
+          }
+        )
+        plog("result.matched_count: "+str(result.matched_count))
+        plog("result.modified_count: "+str(result.modified_count))
+    plog(name+" Exiting")
+    db_client.close()
+  def post(self):
+    # 解析输入的参数
+    self.project_id = self.get_argument('project_id');
+    # 构造阿里云上运行的cmd
+    download_cmd = ('tunnel download ' + self.project_id +
+                    '_base_station_hour_summary ' + _download_folder + '/'
+                    '' + self.project_id + '_base_station_hour_summary.csv ' 
+                    '-h true;')
+    plog("download_cmd: " + download_cmd)
+    # 调用阿里云执行
+    BaseHandler.runCmd(self, download_cmd,  \
+        "download_base_station_hour_summary", \
+        self.doDownloadBaseStationHourSummary)
+    # 渲染结果页面
+    self.render('download_base_station_hour_summary_result.html',
+                project_id = self.project_id,
+                ret_msg = "Success")
+
+class GetBaseStationHourSummaryHandler(tornado.web.RequestHandler, BaseHandler):
+  def post(self):
+    # 解析输入的参数
+    project_id = self.get_argument('project_id');
+    # 渲染结果页面
+    self.render('get_base_station_hour_summary_result.html',
+                project_id = project_id,
+                result = _download_folder,
                 ret_msg = "Success")
 
 if __name__ == '__main__':

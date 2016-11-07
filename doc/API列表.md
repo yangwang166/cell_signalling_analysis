@@ -89,19 +89,16 @@ TODO: 把interval_size和top_n存进去
 参数:
 1. project_id
 
-
-
 ## /compute_base_station_hour_summary [ok]
 启动小时粒度基站热力
 参数:
 1. project_id
-2. date_p  
 
 ## /get_base_station_hour_summary [ok]
 获取小时粒度基站热力进度  
 参数:
 1. project_id
-2. date_p
+返回小时粒度激战数据的本地存放路径
 
 ## /compute_uuid_cell_hours
 启动计算人的时空聚合信息, 会返回阿里云上的对应表
