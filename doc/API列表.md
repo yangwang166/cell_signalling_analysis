@@ -46,6 +46,7 @@
 ```
 0,299536#1,1294#2,121#3,74#4,18#5,18#6,8#7,3#8,2#12,1#13,1#14,2#20,2#6105,1
 ```
+TODO: 把interval_size和top_n存进去
 
 ## /compute_raw_data_stat [ok]
 计算每天的数据条数, 可知道有几天数据, 每天的数据条数  
@@ -56,14 +57,17 @@
 获取每天的数据条数, 可知道有几天数据, 每天的数据条数  
 参数:  
 1. project_id  
+返回结果是以`#`隔开的, 按照分区日期排序, 每天的数据条数
+```
+20151229,514042#20151230,148#20151231,695#20160101,111
+```
 
 ## /filter_data_with_range [ok]
 利用人基于数据量的分布, 过滤数据  
 参数:  
 1. project_id
-2. date_p  
-3. count_min  
-4. count_max  
+2. count_min  
+3. count_max  
 
 ## /compute_filtered_data_stat [ok]
 计算过滤后的每天数据条数  
@@ -75,10 +79,6 @@
 参数:   
 1. project_id  
 
-
-
-
-
 ## /compute_base_station_info [ok]
 计算基站基本信息
 参数:
@@ -88,7 +88,6 @@
 获取基站基本信息  
 参数:
 1. project_id
-
 
 
 
@@ -103,10 +102,6 @@
 参数:
 1. project_id
 2. date_p
-
-
-
-
 
 ## /compute_uuid_cell_hours
 启动计算人的时空聚合信息, 会返回阿里云上的对应表

@@ -25,7 +25,10 @@ _odps_client = "/Users/willwywang-NB/"+\
 _task_id = {"create_customer_raw_data_table":1,
             "upload_customer_raw_data":2,
             "transform_to_spatio_temporal_raw_data":3,
-            "compute_people_distribution":4
+            "compute_people_distribution":4,
+            "compute_raw_data_stat":5,
+            "filter_data_with_range":6,
+            "compute_filtered_data_stat":7
           }
 
 access_id = "xO0RtfYLVQEnAuUN"
@@ -167,6 +170,11 @@ class BaseHandler():
     process = multiprocessing.Process(name = process_name,
                                       target = target_fuc,
                                       args = (sql,))
+    process.start()
+  def runSQL2(self, sql1, sql2, process_name, target_fuc):
+    process = multiprocessing.Process(name = process_name,
+                                      target = target_fuc,
+                                      args = (sql1,sql2,))
     process.start()
 
 class UploadHandler(tornado.web.RequestHandler, BaseHandler):
@@ -493,7 +501,6 @@ class ComputePeopleDistributionHandler(tornado.web.RequestHandler, BaseHandler):
     name = multiprocessing.current_process().name
     plog(name + " " + "Starting")
     progress = 0
-    session_id = ""
     # 建立数据库连接
     db_client = MongoClient('localhost', 27017)
     db = db_client[self.project_id + "_db"]
@@ -505,7 +512,6 @@ class ComputePeopleDistributionHandler(tornado.web.RequestHandler, BaseHandler):
     result = collection.insert_one(
         { "project_id" : self.project_id,
           "task_id" : _task_id["compute_people_distribution"],
-          "aliyun_sess_id" : session_id,
           "progress" : progress,
           "lastModified" : datetime.datetime.utcnow()
         }
@@ -534,14 +540,14 @@ class ComputePeopleDistributionHandler(tornado.web.RequestHandler, BaseHandler):
     # 把人基于数据量的分布写入本地数据库
     collection2 = db["local-result"]
     people_distribution = self.processResult(raw_result)
-    result = collection2.delete_many({
-             "project_id": self.project_id,
-             "task_id": _task_id["compute_people_distribution"]})
-    result = collection2.insert_one(
-        { "project_id" : self.project_id,
-          "task_id" : _task_id["compute_people_distribution"],
-          "result" : people_distribution,
-          "lastModified" : datetime.datetime.utcnow()
+    result = collection2.update_one(
+        {"project_id" : self.project_id, 
+          "task_id" : _task_id["compute_people_distribution"] },
+        { 
+          "$set" : {
+            "result" : people_distribution
+          },
+          "$currentDate": {"lstModified": True}
         }
     )
     progress = 100
@@ -578,6 +584,22 @@ class ComputePeopleDistributionHandler(tornado.web.RequestHandler, BaseHandler):
     # 调用阿里云执行sql
     BaseHandler.runSQL(self, sql, \
         "compute_people_distribution", self.doComputePeopleDistribution)
+    db_client = MongoClient('localhost', 27017)
+    db = db_client[self.project_id + "_db"]
+    collection2 = db["local-result"]
+    result = collection2.delete_many({
+             "project_id": self.project_id,
+             "task_id": _task_id["compute_people_distribution"]})
+    result = collection2.insert_one(
+        { "project_id" : self.project_id,
+          "task_id" : _task_id["compute_people_distribution"],
+          "interval_size" : self.interval_size,
+          "top_n" : self.top_n,
+          "result" : "Not Computed",
+          "lastModified" : datetime.datetime.utcnow()
+        }
+    )
+    db_client.close()
     # 渲染结果页面
     self.render('compute_people_distribution_result.html',
                 project_id = self.project_id,
@@ -598,8 +620,13 @@ class GetPeopleDistributionHandler(tornado.web.RequestHandler, BaseHandler):
                              "task_id": _task_id["compute_people_distribution"]})
     plog("cursor.count(): " + str(cursor.count()))
     people_distribution = ""
+    interval_size = ""
+    top_n = ""
     if(cursor.count() == 1):
-      people_distribution = cursor.next()["result"]
+      res = cursor.next()
+      people_distribution = res["result"]
+      interval_size = res["interval_size"]
+      top_n = res["top_n"]
     else:
       plog("Warning: project_id: " + project_id + ", task_id: " + task_id
            + " has more than one progess record")
@@ -607,6 +634,8 @@ class GetPeopleDistributionHandler(tornado.web.RequestHandler, BaseHandler):
       self.render('get_people_distribution_result.html',
                   project_id = project_id,
                   people_distribution = people_distribution,
+                  interval_size = interval_size,
+                  top_n = top_n,
                   ret_msg = "Error")
     db_client.close()
     plog("Get people_distribution: " + str(people_distribution))
@@ -614,11 +643,85 @@ class GetPeopleDistributionHandler(tornado.web.RequestHandler, BaseHandler):
     self.render('get_people_distribution_result.html',
                 project_id = project_id,
                 people_distribution = people_distribution,
+                interval_size = interval_size,
+                top_n = top_n,
                 ret_msg = "Success")
 
 class ComputeRawDataStatHandler(tornado.web.RequestHandler, BaseHandler):
+  def processResult(self, raw):
+    result = raw.split("\n")[1:-1]
+    new_result = []
+    for pair in result:
+      date_p = pair.split(",")[0][1:-1]
+      count = pair.split(",")[1]
+      new_result.append("" + str(date_p) + "," + count)
+    result_str = '#'.join(new_result)
+    plog("Raw stat: " + str(result_str))
+    return result_str
   def doComputeRawDataStat(self, sql):
-    pass
+    name = multiprocessing.current_process().name
+    plog(name + " " + "Starting")
+    progress = 0
+    # 建立数据库连接
+    db_client = MongoClient('localhost', 27017)
+    db = db_client[self.project_id + "_db"]
+    collection = db["task-progress"]
+    count = 0;
+    result = collection.delete_many({
+             "project_id": self.project_id,
+             "task_id": _task_id["compute_raw_data_stat"]})
+    result = collection.insert_one(
+        { "project_id" : self.project_id,
+          "task_id" : _task_id["compute_raw_data_stat"],
+          "progress" : progress,
+          "lastModified" : datetime.datetime.utcnow()
+        }
+    )
+    plog("result.inserted_id: " + str(result.inserted_id))
+    instance = odps.run_sql(sql)
+    while(not instance.is_successful()):
+      count += 1
+      progress = int((1.0 * count / (count + 1)) * 100)
+      plog("progress: " + str(progress) + "%")
+      result = collection.update_one(
+        {"project_id" : self.project_id, 
+          "task_id" : _task_id["compute_raw_data_stat"] },
+        {
+          "$set": {
+            "progress": progress 
+          },
+          "$currentDate": {"lastModified": True}
+        }
+      )
+      time.sleep(5) 
+    raw_result = instance.get_task_result(instance.get_task_names()[0])
+    collection2 = db["local-result"]
+    raw_stat = self.processResult(raw_result)
+    result = collection2.delete_many({
+             "project_id": self.project_id,
+             "task_id": _task_id["compute_raw_data_stat"]})
+    result = collection2.insert_one(
+        { "project_id" : self.project_id,
+          "task_id" : _task_id["compute_raw_data_stat"],
+          "result" : raw_stat,
+          "lastModified" : datetime.datetime.utcnow()
+        }
+    )
+    progress = 100
+    plog("progress: " + str(progress) + "%")
+    result = collection.update_one(
+      {"project_id" : self.project_id, 
+        "task_id" : _task_id["compute_raw_data_stat"] },
+      {
+        "$set": {
+          "progress": progress 
+        },
+        "$currentDate": {"lastModified": True}
+      }
+    )
+    db_client.close()
+    plog("result.matched_count: "+str(result.matched_count))
+    plog("result.modified_count: "+str(result.modified_count))
   def post(self):
     # 解析输入的参数
     self.project_id = self.get_argument('project_id');
@@ -640,43 +743,221 @@ class GetRawDataStatHandler(tornado.web.RequestHandler, BaseHandler):
     # 解析输入的参数
     project_id = self.get_argument('project_id');
     result = ""
+    # 查询本地数据库
+    db_client = MongoClient('localhost', 27017)
+    db = db_client[project_id + "_db"]
+    collection = db["local-result"]
+    cursor = collection.find({"project_id": project_id,
+                             "task_id": _task_id["compute_raw_data_stat"]})
+    plog("cursor.count(): " + str(cursor.count()))
+    if(cursor.count() == 1):
+      raw_stat = cursor.next()["result"]
+    else:
+      plog("Warning: project_id: " + project_id + ", task_id: " + task_id
+           + " has more than one progess record")
+      raw_stat = ""
+      self.render('get_raw_data_stat_result.html',
+                  project_id = project_id,
+                  result = raw_stat,
+                  ret_msg = "Error")
+    db_client.close()
+    plog("Get raw stat: " + str(raw_stat))
     # 渲染结果页面
     self.render('get_raw_data_stat_result.html',
                 project_id = project_id,
-                result = result,
+                result = raw_stat,
                 ret_msg = "Success")
 
 class FilterDataWithRangeHandler(tornado.web.RequestHandler, BaseHandler):
-  def doFilterDataWithRange(self, sql):
-    pass
+  def doFilterDataWithRange(self, sql1, sql2):
+    plog("sql1: " + sql1)
+    plog("sql2: " + sql2)
+    name = multiprocessing.current_process().name
+    plog(name + " " + "Starting")
+    progress = 0
+    # 建立数据库连接
+    db_client = MongoClient('localhost', 27017)
+    db = db_client[self.project_id + "_db"]
+    collection = db["task-progress"]
+    count = 0;
+    result = collection.delete_many({
+             "project_id": self.project_id,
+             "task_id": _task_id["filter_data_with_range"]})
+    result = collection.insert_one(
+        { "project_id" : self.project_id,
+          "task_id" : _task_id["filter_data_with_range"],
+          "progress" : progress,
+          "lastModified" : datetime.datetime.utcnow()
+        }
+    )
+    plog("result.inserted_id: " + str(result.inserted_id))
+    instance1 = odps.run_sql(sql1)
+    while(not instance1.is_successful()):
+      time.sleep(1) 
+    plog("sql1 runs Successful")
+    instance2 = odps.run_sql(sql2)
+    while(not instance2.is_successful()):
+      count += 1
+      progress = int((1.0 * count / (count + 1)) * 100)
+      plog("progress: " + str(progress) + "%")
+      result = collection.update_one(
+        {"project_id" : self.project_id, 
+          "task_id" : _task_id["filter_data_with_range"] },
+        {
+          "$set": {
+            "progress": progress 
+          },
+          "$currentDate": {"lastModified": True}
+        }
+      )
+      time.sleep(5) 
+
+    progress = 100
+    plog("progress: " + str(progress) + "%")
+    result = collection.update_one(
+      {"project_id" : self.project_id, 
+        "task_id" : _task_id["filter_data_with_range"] },
+      {
+        "$set": {
+          "progress": progress 
+        },
+        "$currentDate": {"lastModified": True}
+      }
+    )
+    db_client.close()
+    plog("result.matched_count: "+str(result.matched_count))
+    plog("result.modified_count: "+str(result.modified_count))
   def post(self):
     # 解析输入的参数
     self.project_id = self.get_argument('project_id');
-    self.date_p = self.get_argument('date_p');
     self.count_min = self.get_argument('count_min');
     self.count_max = self.get_argument('count_max');
     # 构造阿里云上运行的sql
-    sql = "xxx"
-    plog("sql: " + sql)
+    sql1 = ('Create table if not exists ' 
+           '' + self.project_id + '_filtered_raw_data '
+           '(uuid string, lon double, lat double, time bigint, count bigint) '
+           'partitioned by (date_p string);')
+    sql2 = ('insert overwrite table ' + self.project_id + '_filtered_raw_data '
+           'partition(date_p) '
+           'select A.uuid, A.lon, A.lat, A.time, B.count, A.date_p '
+           'from ' + self.project_id + '_spatio_temporal_raw_data A '
+           'inner join '
+           '(select uuid, count(uuid) as count '
+           'from ' + self.project_id + '_spatio_temporal_raw_data '
+           'group by uuid '
+           'having count(uuid) > ' + self.count_min + ' '
+           'and count(uuid) < ' + self.count_max + ') B '
+           'on A.uuid = B.uuid;')
+    plog("sql1: " + sql1)
+    plog("sql2: " + sql2)
     # 调用阿里云执行sql
-    BaseHandler.runSQL(self, sql, \
+    BaseHandler.runSQL2(self, sql1, sql2, \
         "filter_data_with_range", self.doFilterDataWithRange)
+    db_client = MongoClient('localhost', 27017)
+    db = db_client[self.project_id + "_db"]
+    collection2 = db["local-result"]
+    result = collection2.delete_many({
+             "project_id": self.project_id,
+             "task_id": _task_id["filter_data_with_range"]})
+    result = collection2.insert_one(
+        { "project_id" : self.project_id,
+          "task_id" : _task_id["filter_data_with_range"],
+          "count_min" : self.count_min,
+          "count_max" : self.count_max,
+          "result" : "None",
+          "lastModified" : datetime.datetime.utcnow()
+        }
+    )
+    db_client.close()
     # 渲染结果页面
     self.render('filter_data_with_range_result.html',
                 project_id = self.project_id,
-                date_p = self.date_p,
                 count_min = self.count_min,
                 count_max = self.count_max,
                 ret_msg = "Success")
 
 class ComputeFilteredDataStatHandler(tornado.web.RequestHandler, BaseHandler):
+  def processResult(self, raw):
+    result = raw.split("\n")[1:-1]
+    new_result = []
+    for pair in result:
+      date_p = pair.split(",")[0][1:-1]
+      count = pair.split(",")[1]
+      new_result.append("" + str(date_p) + "," + count)
+    result_str = '#'.join(new_result)
+    plog("Raw stat: " + str(result_str))
+    return result_str
   def doComputeFilteredDataStat(self, sql):
-    pass
+    name = multiprocessing.current_process().name
+    plog(name + " " + "Starting")
+    progress = 0
+    # 建立数据库连接
+    db_client = MongoClient('localhost', 27017)
+    db = db_client[self.project_id + "_db"]
+    collection = db["task-progress"]
+    count = 0;
+    result = collection.delete_many({
+             "project_id": self.project_id,
+             "task_id": _task_id["compute_filtered_data_stat"]})
+    result = collection.insert_one(
+        { "project_id" : self.project_id,
+          "task_id" : _task_id["compute_filtered_data_stat"],
+          "progress" : progress,
+          "lastModified" : datetime.datetime.utcnow()
+        }
+    )
+    plog("result.inserted_id: " + str(result.inserted_id))
+    instance = odps.run_sql(sql)
+    while(not instance.is_successful()):
+      count += 1
+      progress = int((1.0 * count / (count + 1)) * 100)
+      plog("progress: " + str(progress) + "%")
+      result = collection.update_one(
+        {"project_id" : self.project_id, 
+          "task_id" : _task_id["compute_filtered_data_stat"] },
+        {
+          "$set": {
+            "progress": progress 
+          },
+          "$currentDate": {"lastModified": True}
+        }
+      )
+      time.sleep(5) 
+    raw_result = instance.get_task_result(instance.get_task_names()[0])
+    collection2 = db["local-result"]
+    filtered_stat = self.processResult(raw_result)
+    result = collection2.update_one(
+        {"project_id" : self.project_id, 
+          "task_id" : _task_id["filter_data_with_range"] },
+        {
+          "$set": {
+            "result": filtered_stat 
+          },
+          "$currentDate": {"lastModified": True}
+        }
+    )
+    progress = 100
+    plog("progress: " + str(progress) + "%")
+    result = collection.update_one(
+      {"project_id" : self.project_id, 
+        "task_id" : _task_id["compute_filtered_data_stat"] },
+      {
+        "$set": {
+          "progress": progress 
+        },
+        "$currentDate": {"lastModified": True}
+      }
+    )
+    db_client.close()
+    plog("result.matched_count: "+str(result.matched_count))
+    plog("result.modified_count: "+str(result.modified_count))
   def post(self):
     # 解析输入的参数
     self.project_id = self.get_argument('project_id');
     # 构造阿里云上运行的sql
-    sql = "xxx"
+    sql = ('select date_p, count(*) as count from ' 
+           '' + self.project_id + '_filtered_raw_data ' 
+           'group by date_p order by date_p limit 100')
     plog("sql: " + sql)
     # 调用阿里云执行sql
     BaseHandler.runSQL(self, sql, \
@@ -690,11 +971,29 @@ class GetFilteredDataStatHandler(tornado.web.RequestHandler, BaseHandler):
   def post(self):
     # 解析输入的参数
     project_id = self.get_argument('project_id');
-    result = ""
+    filtered_stat = ""
+    # 查询本地数据库
+    db_client = MongoClient('localhost', 27017)
+    db = db_client[project_id + "_db"]
+    collection = db["local-result"]
+    cursor = collection.find({"project_id": project_id,
+                             "task_id": _task_id["filter_data_with_range"]})
+    plog("cursor.count(): " + str(cursor.count()))
+    if(cursor.count() == 1):
+      filtered_stat = cursor.next()["result"]
+    else:
+      plog("Warning: project_id: " + project_id + ", task_id: " + task_id
+           + " has more than one progess record")
+      filtered_stat = ""
+      self.render('get_filtered_data_stat_result.html',
+                  project_id = project_id,
+                  result = filtered_stat,
+                  ret_msg = "Error")
+    db_client.close()
     # 渲染结果页面
     self.render('get_filtered_data_stat_result.html',
                 project_id = project_id,
-                result = result,
+                result = filtered_stat,
                 ret_msg = "Success")
 
 if __name__ == '__main__':
