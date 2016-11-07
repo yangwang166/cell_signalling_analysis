@@ -79,34 +79,36 @@
 
 
 
+## /compute_base_station_info [ok]
+计算基站基本信息
+参数:
+1. project_id  
+
+## /get_base_station_info [ok]
+获取基站基本信息  
+参数:
+1. project_id
 
 
-### /base_station_info
-启动基站信息抽取  
-
-### /get_base_station_info
-获取基站信息  
 
 
+## /compute_base_station_hour_summary [ok]
+启动小时粒度基站热力
+参数:
+1. project_id
+2. date_p  
 
-
-### /base_station_summary
-启动天粒度基站热力  
-
-### /get_base_station_summary
-获取天粒度基站热力  
-
-### /base_station_hour_summary
-启动小时粒度基站热力  
-
-### /get_base_station_hour_summary
+## /get_base_station_hour_summary [ok]
 获取小时粒度基站热力进度  
+参数:
+1. project_id
+2. date_p
 
 
 
 
-### /uuid_cell_hours
-启动计算人的时空聚合信息  
 
-### /request_uuid_cell_hours_stat
-获取人的时空信息统计  
+## /compute_uuid_cell_hours
+启动计算人的时空聚合信息, 会返回阿里云上的对应表
+参数:
+1. project_id  
