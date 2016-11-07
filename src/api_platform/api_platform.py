@@ -131,7 +131,7 @@ class Application(tornado.web.Application):
                 GetBaseStationHourSummaryHandler),
               (r'/compute_uuid_cell_hour',                 # 18
                 ComputeUuidCellHourHandler),
-              (r'/get_uuid_cell_hour',                     # 18
+              (r'/get_uuid_cell_hour',                     # 19
                 GetUuidCellHourHandler),
              ]
     settings = dict(
