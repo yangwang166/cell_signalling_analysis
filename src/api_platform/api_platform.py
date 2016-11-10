@@ -18,8 +18,13 @@ from tornado.options import define, options
 define("port", default=8000, help="run on the given port", type=int)
 
 # Make odps client configurable
-_odps_client = "/Users/willwywang-NB/"+\
-         "github/cell_signalling_analysis/tool/odps/bin/odpscmd"
+#_odps_client = "/Users/willwywang-NB/"+\
+#         "github/cell_signalling_analysis/tool/odps/bin/odpscmd"
+_project_home = os.path.dirname(os.path.realpath(__file__))
+print("Project Home: " + _project_home)
+
+_odps_client = _project_home + "/../../tool/odps/bin/odpscmd"
+print("ODPS Client: " + _odps_client)
 
 # 定义见文档: 任务进度查询.md
 _task_id = {"create_customer_raw_data_table":1,
@@ -36,7 +41,6 @@ _task_id = {"create_customer_raw_data_table":1,
             "compute_uuid_cell_hour":12
           }
 
-_project_home = os.path.dirname(os.path.realpath(__file__))
 _download_folder = _project_home + "/downloads"
 if not os.path.exists(_download_folder):
     os.makedirs(_download_folder)
