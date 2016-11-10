@@ -440,6 +440,7 @@ class RequestTaskProgressHandler(tornado.web.RequestHandler):
                   task_id = task_id,
                   progress = progress,
                   ret_msg = "Error")
+      return
     db_client.close()
     self.render('request_task_progress_result.html',
                 project_id = project_id,
@@ -565,6 +566,7 @@ class TransformToInnerFormatHandler(tornado.web.RequestHandler, BaseHandler):
                   project_id = self.project_id,
                   task_id = task_id,
                   ret_msg = "Error")
+      return
     db_client.close()
     self.render('transform_to_inner_format_result.html',
                 project_id = self.project_id,
@@ -685,6 +687,7 @@ class GetRawDataStatHandler(tornado.web.RequestHandler, BaseHandler):
                   project_id = project_id,
                   result = raw_stat,
                   ret_msg = "Error")
+      return
     db_client.close()
     plog("Get raw stat: " + str(raw_stat))
     # 渲染结果页面
@@ -840,6 +843,7 @@ class GetPeopleDistributionHandler(tornado.web.RequestHandler, BaseHandler):
                   interval_size = interval_size,
                   top_n = top_n,
                   ret_msg = "Error")
+      return
     db_client.close()
     plog("Get people_distribution: " + str(people_distribution))
     # 渲染结果页面
@@ -1237,6 +1241,7 @@ class GetFilteredDataStatHandler(tornado.web.RequestHandler, BaseHandler):
                   project_id = project_id,
                   result = filtered_stat,
                   ret_msg = "Error")
+      return
     db_client.close()
     # 渲染结果页面
     self.render('get_filtered_data_stat_result.html',
