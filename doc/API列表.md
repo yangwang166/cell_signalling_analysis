@@ -63,36 +63,36 @@
 0,299536#1,1294#2,121#3,74#4,18#5,18#6,8#7,3#8,2#12,1#13,1#14,2#20,2#6105,1
 ```
 
-## 9 /compute_base_station_info [ok]
-计算基站基本信息  
-参数:  
-1. project_id   
-
-## 10 /download_base_station_info [ok]
-下载基站基本信息到本地  
-参数:  
-1. project_id  
-
-## 11 /get_base_station_info [ok]
-获取基站基本信息的本地路径  
-参数:  
-1. project_id  
-
-## 12 /filter_data_with_range [ok]
+## 9 /filter_data_with_range [ok]
 利用人基于数据量的分布, 过滤数据  
 参数:  
 1. project_id  
 2. count_min  
 3. count_max  
 
-## 13 /compute_filtered_data_stat [ok]
+## 10 /compute_filtered_data_stat [ok]
 计算过滤后的每天数据条数  
 参数:  
 1. project_id  
 
-## 14 /get_filtered_data_stat [ok]
+## 11 /get_filtered_data_stat [ok]
 获取过滤后的每天数据条数  
 参数:   
+1. project_id  
+
+## 12 /compute_base_station_info [ok]
+计算基站基本信息  
+参数:  
+1. project_id   
+
+## 13 /download_base_station_info [ok]
+下载基站基本信息到本地  
+参数:  
+1. project_id  
+
+## 14 /get_base_station_info [ok]
+获取基站基本信息的本地路径  
+参数:  
 1. project_id  
 
 ## 15 /compute_base_station_hour_summary [ok]
