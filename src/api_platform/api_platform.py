@@ -32,10 +32,10 @@ _task_id = {"create_customer_raw_data_table":1,
             "transform_to_spatio_temporal_raw_data":3,
             "compute_raw_data_stat":4,
             "compute_people_distribution":5,
-            "filter_data_with_range":6,
-            "compute_filtered_data_stat":7,
-            "compute_base_station_info":8,
-            "download_base_station_info":9,
+            "compute_base_station_info":6,
+            "download_base_station_info":7,
+            "filter_data_with_range":8,
+            "compute_filtered_data_stat":9,
             "compute_base_station_hour_summary":10,
             "download_base_station_hour_summary":11,
             "compute_uuid_cell_hour":12
@@ -76,18 +76,18 @@ class Application(tornado.web.Application):
                 TestComputePeopleDistributionHandler),
               (r'/test_get_people_distribution',           # 8
                 TestGetPeopleDistributionHandler),
-              (r'/test_filter_data_with_range',            # 9
-                TestFilterDataWithRangeHandler),
-              (r'/test_compute_filtered_data_stat',        # 10
-                TestComputeFilteredDataStatHandler),
-              (r'/test_get_filtered_data_stat',            # 11
-                TestGetFilteredDataStatHandler),
-              (r'/test_compute_base_station_info',         # 12
+              (r'/test_compute_base_station_info',         # 9
                 TestComputeBaseStationInfoHandler),
-              (r'/test_download_base_station_info',        # 13
+              (r'/test_download_base_station_info',        # 10
                 TestDownloadBaseStationInfoHandler),
-              (r'/test_get_base_station_info',             # 14
+              (r'/test_get_base_station_info',             # 11
                 TestGetBaseStationInfoHandler),
+              (r'/test_filter_data_with_range',            # 12
+                TestFilterDataWithRangeHandler),
+              (r'/test_compute_filtered_data_stat',        # 13
+                TestComputeFilteredDataStatHandler),
+              (r'/test_get_filtered_data_stat',            # 14
+                TestGetFilteredDataStatHandler),
               (r'/test_compute_base_station_hour_summary', # 15
                 TestComputeBaseStationHourSummaryHandler),
               (r'/test_download_base_station_hour_summary',# 16
@@ -115,18 +115,18 @@ class Application(tornado.web.Application):
                 ComputePeopleDistributionHandler),
               (r'/get_people_distribution',                # 8
                 GetPeopleDistributionHandler),
-              (r'/filter_data_with_range',                 # 9
-                FilterDataWithRangeHandler),
-              (r'/compute_filtered_data_stat',             # 10
-                ComputeFilteredDataStatHandler),
-              (r'/get_filtered_data_stat',                 # 11
-                GetFilteredDataStatHandler),
-              (r'/compute_base_station_info',              # 12
+              (r'/compute_base_station_info',              # 9
                 ComputeBaseStationInfoHandler),
-              (r'/download_base_station_info',             # 13
+              (r'/download_base_station_info',             # 10
                 DownloadBaseStationInfoHandler),
-              (r'/get_base_station_info',                  # 14
+              (r'/get_base_station_info',                  # 11
                 GetBaseStationInfoHandler),
+              (r'/filter_data_with_range',                 # 12
+                FilterDataWithRangeHandler),
+              (r'/compute_filtered_data_stat',             # 13
+                ComputeFilteredDataStatHandler),
+              (r'/get_filtered_data_stat',                 # 14
+                GetFilteredDataStatHandler),
               (r'/compute_base_station_hour_summary',      # 15
                 ComputeBaseStationHourSummaryHandler),
               (r'/download_base_station_hour_summary',     # 16
@@ -190,34 +190,34 @@ class TestGetPeopleDistributionHandler(tornado.web.RequestHandler):
     self.render('test_get_people_distribution.html')
 
 # 9
-class TestFilterDataWithRangeHandler(tornado.web.RequestHandler):
-  def get(self):
-    self.render('test_filter_data_with_range.html')
-
-# 10
-class TestComputeFilteredDataStatHandler(tornado.web.RequestHandler):
-  def get(self):
-    self.render('test_compute_filtered_data_stat.html')
-
-# 11
-class TestGetFilteredDataStatHandler(tornado.web.RequestHandler):
-  def get(self):
-    self.render('test_get_filtered_data_stat.html')
-
-# 12
 class TestComputeBaseStationInfoHandler(tornado.web.RequestHandler):
   def get(self):
     self.render('test_compute_base_station_info.html')
 
-# 13
+# 10
 class TestDownloadBaseStationInfoHandler(tornado.web.RequestHandler):
   def get(self):
     self.render('test_download_base_station_info.html')
 
-# 14
+# 11
 class TestGetBaseStationInfoHandler(tornado.web.RequestHandler):
   def get(self):
     self.render('test_get_base_station_info.html')
+
+# 12
+class TestFilterDataWithRangeHandler(tornado.web.RequestHandler):
+  def get(self):
+    self.render('test_filter_data_with_range.html')
+
+# 13
+class TestComputeFilteredDataStatHandler(tornado.web.RequestHandler):
+  def get(self):
+    self.render('test_compute_filtered_data_stat.html')
+
+# 14
+class TestGetFilteredDataStatHandler(tornado.web.RequestHandler):
+  def get(self):
+    self.render('test_get_filtered_data_stat.html')
 
 # 15
 class TestComputeBaseStationHourSummaryHandler(tornado.web.RequestHandler):
@@ -879,6 +879,170 @@ class GetPeopleDistributionHandler(tornado.web.RequestHandler, BaseHandler):
                 interval_size = interval_size,
                 top_n = top_n,
                 ret_msg = "Success")
+
+# 9
+class ComputeBaseStationInfoHandler(tornado.web.RequestHandler, BaseHandler):
+  def doComputeBaseStationInfo(self, sql1, sql2):
+    name = multiprocessing.current_process().name
+    plog(name + " " + "Starting")
+    progress = 0
+    # 建立数据库连接
+    db_client = MongoClient('localhost', 27017)
+    db = db_client[self.project_id + "_db"]
+    collection = db["task-progress"]
+    count = 0;
+    result = collection.delete_many({
+             "project_id": self.project_id,
+             "task_id": _task_id["compute_base_station_info"]})
+    result = collection.insert_one(
+        { "project_id" : self.project_id,
+          "task_id" : _task_id["compute_base_station_info"],
+          "progress" : progress,
+          "lastModified" : datetime.datetime.utcnow()
+        }
+    )
+    plog("result.inserted_id: " + str(result.inserted_id))
+    instance1 = odps.run_sql(sql1)
+    while(not instance1.is_successful()):
+      time.sleep(1) 
+    plog("sql1 runs Successful")
+    instance2 = odps.run_sql(sql2)
+    while(not instance2.is_successful()):
+      count += 1
+      progress = int((1.0 * count / (count + 1)) * 100)
+      plog("progress: " + str(progress) + "%")
+      result = collection.update_one(
+        {"project_id" : self.project_id, 
+          "task_id" : _task_id["compute_base_station_info"] },
+        {
+          "$set": {
+            "progress": progress 
+          },
+          "$currentDate": {"lastModified": True}
+        }
+      )
+      time.sleep(5) 
+    progress = 100
+    plog("progress: " + str(progress) + "%")
+    result = collection.update_one(
+      {"project_id" : self.project_id, 
+        "task_id" : _task_id["compute_base_station_info"] },
+      {
+        "$set": {
+          "progress": progress 
+        },
+        "$currentDate": {"lastModified": True}
+      }
+    )
+    db_client.close()
+    plog("result.matched_count: "+str(result.matched_count))
+    plog("result.modified_count: "+str(result.modified_count))
+  def post(self):
+    # 解析输入的参数
+    self.project_id = self.get_argument('project_id');
+    # 构造阿里云上运行的sql
+    sql1 = ('create table if not exists ' 
+            '' + self.project_id + '_base_station_info'
+            '(id bigint, lon double, lat double)') 
+    sql2 = ('insert overwrite table ' 
+            '' + self.project_id + '_base_station_info '
+            'select row_number() over(partition by A.tmp order by A.tmp) as id,'
+            'A.lon, A.lat '
+            'from (select distinct lon, lat, 1 as tmp '
+            'from ' + self.project_id + '_spatio_temporal_raw_data) A;')
+    plog("sql1: " + sql1)
+    plog("sql2: " + sql2)
+    # 调用阿里云执行sql
+    BaseHandler.runSQL2(self, sql1, sql2, \
+        "compute_raw_data_stat", self.doComputeBaseStationInfo)
+    # 渲染结果页面
+    self.render('compute_base_station_info_result.html',
+                project_id = self.project_id,
+                ret_msg = "Success")
+
+# 10
+class DownloadBaseStationInfoHandler(tornado.web.RequestHandler, BaseHandler):
+  def doDownloadBaseStationInfo(self, exe):
+    name = multiprocessing.current_process().name
+    plog(name + " " + "Starting")
+    progress = 0
+    count = 0
+    db_client = MongoClient('localhost', 27017)
+    db = db_client[self.project_id + "_db"]
+    collection = db["task-progress"]
+    result = collection.delete_many({
+             "project_id": self.project_id,
+             "task_id": _task_id["download_base_station_info"]})
+    result = collection.insert_one(
+        { "project_id" : self.project_id,
+          "task_id" : _task_id["download_base_station_info"],
+          "progress" : progress,
+          "lastModified" : datetime.datetime.utcnow()
+        }
+    )
+    for line in BaseHandler.runProcess(self, exe):
+      print line,
+      # extract upload progess and total block
+      if "file" in line:
+        count += 1
+        progress = int((1.0 * count / (count + 1)) * 100)
+        plog("progress: " + str(progress) + "%")
+        result = collection.update_one(
+          {"project_id" : self.project_id, 
+            "task_id" : _task_id["download_base_station_info"] },
+          {
+            "$set": {
+              "progress": progress 
+            },
+            "$currentDate": {"lastModified": True}
+          }
+        )
+        plog("result.matched_count: "+str(result.matched_count))
+        plog("result.modified_count: "+str(result.modified_count))
+      elif "download OK" in line:
+        progress = 100
+        plog("progress: " + str(progress) + "%")
+        result = collection.update_one(
+          {"project_id" : self.project_id, 
+            "task_id" : _task_id["download_base_station_info"] },
+          {
+            "$set": {
+              "progress": progress 
+            },
+            "$currentDate": {"lastModified": True}
+          }
+        )
+        plog("result.matched_count: "+str(result.matched_count))
+        plog("result.modified_count: "+str(result.modified_count))
+    plog(name+" Exiting")
+    db_client.close()
+  def post(self):
+    # 解析输入的参数
+    self.project_id = self.get_argument('project_id');
+    download_cmd = ('tunnel download ' + self.project_id +
+                    '_base_station_info ' + _download_folder + '/'
+                    '' + self.project_id + '_base_station_info.csv ' 
+                    '-h true;')
+    plog("download_cmd: " + download_cmd)
+    # 调用阿里云执行
+    BaseHandler.runCmd(self, download_cmd,  \
+        "download_base_station_info", \
+        self.doDownloadBaseStationInfo)
+    # 渲染结果页面
+    self.render('compute_base_station_info_result.html',
+                project_id = self.project_id,
+                ret_msg = "Success")
+
+# 11
+class GetBaseStationInfoHandler(tornado.web.RequestHandler, BaseHandler):
+  def post(self):
+    # 解析输入的参数
+    project_id = self.get_argument('project_id');
+    # 渲染结果页面
+    self.render('get_raw_data_stat_result.html',
+                project_id = project_id,
+                result = _download_folder,
+                ret_msg = "Success")
 # 12
 class FilterDataWithRangeHandler(tornado.web.RequestHandler, BaseHandler):
   def doFilterDataWithRange(self, sql1, sql2):
@@ -992,7 +1156,7 @@ class FilterDataWithRangeHandler(tornado.web.RequestHandler, BaseHandler):
                 count_min = self.count_min,
                 count_max = self.count_max,
                 ret_msg = "Success")
-# 10
+# 13
 class ComputeFilteredDataStatHandler(tornado.web.RequestHandler, BaseHandler):
   def processResult(self, raw):
     result = raw.split("\n")[1:-1]
@@ -1084,7 +1248,7 @@ class ComputeFilteredDataStatHandler(tornado.web.RequestHandler, BaseHandler):
                 project_id = self.project_id,
                 ret_msg = "Success")
 
-# 11
+# 14
 class GetFilteredDataStatHandler(tornado.web.RequestHandler, BaseHandler):
   def post(self):
     # 解析输入的参数
@@ -1114,172 +1278,6 @@ class GetFilteredDataStatHandler(tornado.web.RequestHandler, BaseHandler):
                 project_id = project_id,
                 result = filtered_stat,
                 ret_msg = "Success")
-
-
-# 12
-class ComputeBaseStationInfoHandler(tornado.web.RequestHandler, BaseHandler):
-  def doComputeBaseStationInfo(self, sql1, sql2):
-    name = multiprocessing.current_process().name
-    plog(name + " " + "Starting")
-    progress = 0
-    # 建立数据库连接
-    db_client = MongoClient('localhost', 27017)
-    db = db_client[self.project_id + "_db"]
-    collection = db["task-progress"]
-    count = 0;
-    result = collection.delete_many({
-             "project_id": self.project_id,
-             "task_id": _task_id["compute_base_station_info"]})
-    result = collection.insert_one(
-        { "project_id" : self.project_id,
-          "task_id" : _task_id["compute_base_station_info"],
-          "progress" : progress,
-          "lastModified" : datetime.datetime.utcnow()
-        }
-    )
-    plog("result.inserted_id: " + str(result.inserted_id))
-    instance1 = odps.run_sql(sql1)
-    while(not instance1.is_successful()):
-      time.sleep(1) 
-    plog("sql1 runs Successful")
-    instance2 = odps.run_sql(sql2)
-    while(not instance2.is_successful()):
-      count += 1
-      progress = int((1.0 * count / (count + 1)) * 100)
-      plog("progress: " + str(progress) + "%")
-      result = collection.update_one(
-        {"project_id" : self.project_id, 
-          "task_id" : _task_id["compute_base_station_info"] },
-        {
-          "$set": {
-            "progress": progress 
-          },
-          "$currentDate": {"lastModified": True}
-        }
-      )
-      time.sleep(5) 
-    progress = 100
-    plog("progress: " + str(progress) + "%")
-    result = collection.update_one(
-      {"project_id" : self.project_id, 
-        "task_id" : _task_id["compute_base_station_info"] },
-      {
-        "$set": {
-          "progress": progress 
-        },
-        "$currentDate": {"lastModified": True}
-      }
-    )
-    db_client.close()
-    plog("result.matched_count: "+str(result.matched_count))
-    plog("result.modified_count: "+str(result.modified_count))
-  def post(self):
-    # 解析输入的参数
-    self.project_id = self.get_argument('project_id');
-    # 构造阿里云上运行的sql
-    sql1 = ('create table if not exists ' 
-            '' + self.project_id + '_base_station_info'
-            '(id bigint, lon double, lat double)') 
-    sql2 = ('insert overwrite table ' 
-            '' + self.project_id + '_base_station_info '
-            'select row_number() over(partition by A.tmp order by A.tmp) as id,'
-            'A.lon, A.lat '
-            'from (select distinct lon, lat, 1 as tmp '
-            'from ' + self.project_id + '_filtered_raw_data) A;')
-    plog("sql1: " + sql1)
-    plog("sql2: " + sql2)
-    # 调用阿里云执行sql
-    BaseHandler.runSQL2(self, sql1, sql2, \
-        "compute_raw_data_stat", self.doComputeBaseStationInfo)
-    # 渲染结果页面
-    self.render('compute_base_station_info_result.html',
-                project_id = self.project_id,
-                ret_msg = "Success")
-
-# 13
-class DownloadBaseStationInfoHandler(tornado.web.RequestHandler, BaseHandler):
-  def doDownloadBaseStationInfo(self, exe):
-    name = multiprocessing.current_process().name
-    plog(name + " " + "Starting")
-    progress = 0
-    count = 0
-    db_client = MongoClient('localhost', 27017)
-    db = db_client[self.project_id + "_db"]
-    collection = db["task-progress"]
-    result = collection.delete_many({
-             "project_id": self.project_id,
-             "task_id": _task_id["download_base_station_info"]})
-    result = collection.insert_one(
-        { "project_id" : self.project_id,
-          "task_id" : _task_id["download_base_station_info"],
-          "progress" : progress,
-          "lastModified" : datetime.datetime.utcnow()
-        }
-    )
-    for line in BaseHandler.runProcess(self, exe):
-      print line,
-      # extract upload progess and total block
-      if "file" in line:
-        count += 1
-        progress = int((1.0 * count / (count + 1)) * 100)
-        plog("progress: " + str(progress) + "%")
-        result = collection.update_one(
-          {"project_id" : self.project_id, 
-            "task_id" : _task_id["download_base_station_info"] },
-          {
-            "$set": {
-              "progress": progress 
-            },
-            "$currentDate": {"lastModified": True}
-          }
-        )
-        plog("result.matched_count: "+str(result.matched_count))
-        plog("result.modified_count: "+str(result.modified_count))
-      elif "download OK" in line:
-        progress = 100
-        plog("progress: " + str(progress) + "%")
-        result = collection.update_one(
-          {"project_id" : self.project_id, 
-            "task_id" : _task_id["download_base_station_info"] },
-          {
-            "$set": {
-              "progress": progress 
-            },
-            "$currentDate": {"lastModified": True}
-          }
-        )
-        plog("result.matched_count: "+str(result.matched_count))
-        plog("result.modified_count: "+str(result.modified_count))
-    plog(name+" Exiting")
-    db_client.close()
-  def post(self):
-    # 解析输入的参数
-    self.project_id = self.get_argument('project_id');
-    download_cmd = ('tunnel download ' + self.project_id +
-                    '_base_station_info ' + _download_folder + '/'
-                    '' + self.project_id + '_base_station_info.csv ' 
-                    '-h true;')
-    plog("download_cmd: " + download_cmd)
-    # 调用阿里云执行
-    BaseHandler.runCmd(self, download_cmd,  \
-        "download_base_station_info", \
-        self.doDownloadBaseStationInfo)
-    # 渲染结果页面
-    self.render('compute_base_station_info_result.html',
-                project_id = self.project_id,
-                ret_msg = "Success")
-
-# 14
-class GetBaseStationInfoHandler(tornado.web.RequestHandler, BaseHandler):
-  def post(self):
-    # 解析输入的参数
-    project_id = self.get_argument('project_id');
-    # 渲染结果页面
-    self.render('get_raw_data_stat_result.html',
-                project_id = project_id,
-                result = _download_folder,
-                ret_msg = "Success")
-
 
 # 15
 class ComputeBaseStationHourSummaryHandler(tornado.web.RequestHandler, 
