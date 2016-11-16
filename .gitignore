@@ -9,4 +9,5 @@ downloads/
 odps_config.ini
 odps_api.py
 *.logs
+conf/
 
