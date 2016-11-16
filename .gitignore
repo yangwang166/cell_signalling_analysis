@@ -8,4 +8,5 @@ tool/odps/plugins/dship/sessions/
 downloads/
 odps_config.ini
 odps_api.py
+*.logs
 
