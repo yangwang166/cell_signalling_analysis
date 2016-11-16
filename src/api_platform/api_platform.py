@@ -60,10 +60,10 @@ class Application(tornado.web.Application):
               (r'/', 
                 IndexHandler),
 
-              (r'/test_upload',                            # 1
-                TestUploadHandler), 
-              (r'/test_create_customer_raw_data',          # 2
+              (r'/test_create_customer_raw_data',          # 1
                 TestCreateCustomerRawDataTableHandler),
+              (r'/test_upload',                            # 2
+                TestUploadHandler), 
               (r'/test_request_task_progress',             # 3
                 TestRequestTaskProgressHandler),
               (r'/test_transform_to_inner_format',         # 4
@@ -99,10 +99,10 @@ class Application(tornado.web.Application):
               (r'/test_get_uuid_cell_hour',                # 19
                 TestGetUuidCellHourHandler),
 
-              (r'/upload_data',                            # 1
-                UploadHandler),
-              (r'/create_customer_raw_data',               # 2
+              (r'/create_customer_raw_data',               # 1
                 CreateCustomerRawDataHandler),
+              (r'/upload_data',                            # 2
+                UploadHandler),
               (r'/request_task_progress',                  # 3
                 RequestTaskProgressHandler),
               (r'/transform_to_inner_format',              # 4
@@ -150,14 +150,14 @@ class IndexHandler(tornado.web.RequestHandler):
     self.render('index.html')
 
 # 1
-class TestUploadHandler(tornado.web.RequestHandler):
-  def get(self):
-    self.render('test_upload.html')
-
-# 2
 class TestCreateCustomerRawDataTableHandler(tornado.web.RequestHandler):
   def get(self):
     self.render('test_create_customer_raw_data_table.html')
+
+# 2
+class TestUploadHandler(tornado.web.RequestHandler):
+  def get(self):
+    self.render('test_upload.html')
 
 # 3
 class TestRequestTaskProgressHandler(tornado.web.RequestHandler):
@@ -278,82 +278,6 @@ class BaseHandler():
     process.start()
 
 # 1
-class UploadHandler(tornado.web.RequestHandler, BaseHandler):
-  def doUpload(self, exe):
-    name = multiprocessing.current_process().name
-    plog(name+" "+"Starting")
-    total = 0
-    finished = 0
-    progress = 0
-    session_id = ""
-    db_client = MongoClient('localhost', 27017)
-    db = db_client[self.project_id + "_db"]
-    collection = db["task-progress"]
-    for line in BaseHandler.runProcess(self, exe):
-      print line,
-      # extract upload progess and total block
-      if "Upload session" in line:
-        session_id = line.split()[2]
-        plog("session_id: " + session_id)
-        result = collection.delete_many({
-                 "project_id": self.project_id,
-                 "task_id": _task_id["upload_customer_raw_data"]})
-        result = collection.insert_one(
-            { "project_id" : self.project_id,
-              "task_id" : _task_id["upload_customer_raw_data"],
-              "aliyun_sess_id" : session_id,
-              "progress" : progress,
-              "lastModified" : datetime.datetime.utcnow()
-            }
-        )
-        plog("result.inserted_id: " + str(result.inserted_id))
-      if "Split input to" in line:
-        total = int(line.split()[5])
-        plog("total: " + str(total))
-      elif "upload block complete" in line:
-        finished += 1
-        plog("finished: " + str(finished))
-        progress = int((1.0 * finished / total) * 100)
-        plog("progress: " + str(progress) + "%")
-        result = collection.update_one(
-          {"project_id" : self.project_id, 
-            "task_id" : _task_id["upload_customer_raw_data"] },
-          {
-            "$set": {
-              "progress": progress 
-            },
-            "$currentDate": {"lastModified": True}
-          }
-        )
-        plog("result.matched_count: "+str(result.matched_count))
-        plog("result.modified_count: "+str(result.modified_count))
-    plog(name+" Exiting")
-    db_client.close()
-  def post(self):
-    # 解析输入的参数
-    self.project_id = self.get_argument('project_id')
-    data_path = self.get_argument('data_path')
-    #aliyun_table = self.get_argument('aliyun_table')
-    aliyun_table = self.project_id + "_customer_raw_data"
-    threads_num = self.get_argument('threads_num')
-    row_delimiter = self.get_argument('row_delimiter')
-    col_delimiter = self.get_argument('col_delimiter')
-    # 构造阿里云上运行的sql
-    upload_cmd = "tunnel upload %s %s -bs 10 -threads %s -s true" \
-                 % (data_path, aliyun_table, threads_num)
-    ## TODO: drop table and clean progress db before a new upload
-    # 调用阿里云执行sql
-    BaseHandler.runCmd(self, upload_cmd, "upload_process", self.doUpload)
-    # 渲染结果页面
-    self.render('upload_result.html', 
-                project_id = self.project_id,
-                data_path = data_path,
-                aliyun_table = aliyun_table,
-                threads_num = threads_num,
-                row_delimiter = row_delimiter,
-                col_delimiter = col_delimiter)
-
-# 2
 class CreateCustomerRawDataHandler(tornado.web.RequestHandler, BaseHandler):
   def isValidType(self, f_type):
     valid_type = ["bigint", "double", "string", "datetime", "boolean"]
@@ -413,9 +337,9 @@ class CreateCustomerRawDataHandler(tornado.web.RequestHandler, BaseHandler):
                   return_msg = return_msg)
       return
     fields_list = fields_raw.replace("#", " ")
-    # TODO: 先drop掉再新建
-    sql = "create table if not exists " + self.project_id + \
-        "_customer_raw_data (" + fields_list + ")"
+    sql = "drop table if exists " + self.project_id + "_customer_raw_data; " + \
+          "create table if not exists " + self.project_id + \
+          "_customer_raw_data (" + fields_list + ")"
     BaseHandler.runCmd(self, sql, \
         "create_customer_raw_data_process", self.doCreateCustomerRaw)
     # 将客户原始有效字段存储到元数据中
@@ -435,6 +359,139 @@ class CreateCustomerRawDataHandler(tornado.web.RequestHandler, BaseHandler):
     db_client.close()
     self.render('create_customer_raw_data_result.html',
                 return_msg = return_msg)
+
+# 2
+class UploadHandler(tornado.web.RequestHandler, BaseHandler):
+  def getTimeFieldType(self, raw_fields):
+    for pairs in raw_fields.split(","):
+      (f_name, f_type) = pairs.split("#")
+      if(f_name == "time"):
+        return f_type
+  def doUpload(self, exe):
+    name = multiprocessing.current_process().name
+    plog(name+" "+"Starting")
+    total = 0
+    finished = 0
+    progress = 0
+    session_id = ""
+    db_client = MongoClient('localhost', 27017)
+    db = db_client[self.project_id + "_db"]
+    collection = db["task-progress"]
+    for line in BaseHandler.runProcess(self, exe):
+      print line,
+      # extract upload progess and total block
+      if "Upload session" in line:
+        session_id = line.split()[2]
+        plog("session_id: " + session_id)
+        result = collection.delete_many({
+                 "project_id": self.project_id,
+                 "task_id": _task_id["upload_customer_raw_data"]})
+        result = collection.insert_one(
+            { "project_id" : self.project_id,
+              "task_id" : _task_id["upload_customer_raw_data"],
+              "aliyun_sess_id" : session_id,
+              "progress" : progress,
+              "lastModified" : datetime.datetime.utcnow()
+            }
+        )
+        plog("result.inserted_id: " + str(result.inserted_id))
+      if "Split input to" in line:
+        total = int(line.split()[5])
+        plog("total: " + str(total))
+      elif "upload block complete" in line:
+        finished += 1
+        plog("finished: " + str(finished))
+        progress = int((1.0 * finished / total) * 100)
+        plog("progress: " + str(progress) + "%")
+        result = collection.update_one(
+          {"project_id" : self.project_id, 
+            "task_id" : _task_id["upload_customer_raw_data"] },
+          {
+            "$set": {
+              "progress": progress 
+            },
+            "$currentDate": {"lastModified": True}
+          }
+        )
+        plog("result.matched_count: "+str(result.matched_count))
+        plog("result.modified_count: "+str(result.modified_count))
+    plog(name+" Exiting")
+    db_client.close()
+  def post(self):
+    # 解析输入的参数
+    self.project_id = self.get_argument('project_id')
+    data_path = self.get_argument('data_path')
+    #aliyun_table = self.get_argument('aliyun_table')
+    aliyun_table = self.project_id + "_customer_raw_data"
+    threads_num = self.get_argument('threads_num')
+    row_delimiter = self.get_argument('row_delimiter')
+    col_delimiter = self.get_argument('col_delimiter')
+    plog("aliyun_table: " + aliyun_table)
+    plog("threads_num: " + threads_num)
+    plog("row_delimiter: " + row_delimiter)
+    plog("col_delimiter: " + col_delimiter)
+    # 获取字段类型
+    db_client = MongoClient('localhost', 27017)
+    db = db_client[self.project_id + "_db"]
+    collection = db["customer_fields"]
+    task_id = _task_id["create_customer_raw_data_table"]
+    cursor = collection.find({"project_id": self.project_id,
+                       "task_id": task_id})
+    if(cursor.count() == 1):
+      fields_raw = cursor.next()["fields_raw"]
+      plog("fields_raw: " + fields_raw)
+      timeFieldType = self.getTimeFieldType(fields_raw)
+      if(timeFieldType=="bigint"):
+        # 构造阿里云上运行的sql
+        upload_cmd = "truncate table " + aliyun_table + ";" + \
+                     "tunnel upload " + data_path + " " + aliyun_table +\
+                     " -bs 10 -threads " + threads_num + " -s true"
+        # 调用阿里云执行sql
+        BaseHandler.runCmd(self, upload_cmd, "upload_process", self.doUpload)
+      elif(timeFieldType=="datetime"):
+        # Time format: 2015-06-21 04:01:00
+        # 构造阿里云上运行的sql
+        upload_cmd = "truncate table " + aliyun_table + ";" +\
+                     "tunnel upload " + data_path + " " + aliyun_table +\
+                     " -bs 10 -threads " + threads_num + " -s true" +\
+                     " -dfp 'yyyy-MM-dd HH:mm:ss'" 
+        # 调用阿里云执行sql
+        BaseHandler.runCmd(self, upload_cmd, "upload_process", self.doUpload)
+      else:
+        plog("Warning: project_id: " + self.project_id + ", task_id: " 
+            + task_id + " time field format not support now.")
+        self.render('upload_result.html',
+                    project_id = self.project_id,
+                    data_path = data_path,
+                    aliyun_table = aliyun_table,
+                    threads_num = threads_num,
+                    row_delimiter = row_delimiter,
+                    col_delimiter = col_delimiter,
+                    ret_msg = "Time field format not support")
+        return
+    else:
+      plog("Warning: project_id: " + self.project_id + ", task_id: " 
+          + task_id + " has more than one progess record")
+      self.render('upload_result.html',
+                  project_id = self.project_id,
+                  data_path = data_path,
+                  aliyun_table = aliyun_table,
+                  threads_num = threads_num,
+                  row_delimiter = row_delimiter,
+                  col_delimiter = col_delimiter,
+                  ret_msg = "Error")
+      return
+    db_client.close()
+    # 渲染结果页面
+    self.render('upload_result.html', 
+                project_id = self.project_id,
+                data_path = data_path,
+                aliyun_table = aliyun_table,
+                threads_num = threads_num,
+                row_delimiter = row_delimiter,
+                col_delimiter = col_delimiter,
+                ret_msg = "Success")
+
 
 # 3
 class RequestTaskProgressHandler(tornado.web.RequestHandler):
@@ -484,6 +541,11 @@ class TransformToInnerFormatHandler(tornado.web.RequestHandler, BaseHandler):
       else:
         continue
     return (fields, types)
+  def getTimeFieldType(self, raw_fields):
+    for pairs in raw_fields.split(","):
+      (f_name, f_type) = pairs.split("#")
+      if(f_name == "time"):
+        return f_type
   def doTransformToInnerFormat(self, exe):
     name = multiprocessing.current_process().name
     plog(name + " " + "Starting")
@@ -544,13 +606,11 @@ class TransformToInnerFormatHandler(tornado.web.RequestHandler, BaseHandler):
         )
         plog("result.matched_count: "+str(result.matched_count))
         plog("result.modified_count: "+str(result.modified_count))
-      # TODO 解析
     db_client.close()
     plog(name+" Exiting")
   def post(self):
     self.project_id = self.get_argument('project_id');
     plog("project_id: " + self.project_id)
-    # TODO 用元数据记录客户原始表各个字段的类型, 因为时间类型不同处理方式不同
     db_client = MongoClient('localhost', 27017)
     db = db_client[self.project_id + "_db"]
     collection = db["customer_fields"]
@@ -561,22 +621,47 @@ class TransformToInnerFormatHandler(tornado.web.RequestHandler, BaseHandler):
       fields_raw = cursor.next()["fields_raw"]
       plog("fields_raw: " + fields_raw)
       (fields, types) = self.extractValidFields(fields_raw)
-      # TODO 根据字段的types区分转换
+      timeFieldType = self.getTimeFieldType(fields_raw)
       # 合成需要取出的字段
+      sql = ""
       if("uuid" in fields and "lon" in fields and "lat" in fields and
           "time" in fields):
-        field_list = "uuid, lon, lat, time"
-      # TODO use cmd folder file with wildcards
-      sql = "create table if not exists " + self.project_id + \
-            "_spatio_temporal_raw_data(uuid string, lon double, lat double, " + \
-            "time bigint) partitioned by (date_p string); " + \
-            "insert overwrite table " + self.project_id + \
-            "_spatio_temporal_raw_data partition(date_p) select " + \
-            field_list + ", to_char(from_unixtime(time), 'yyyymmdd') as date_p "+\
-            "from " + self.project_id + "_customer_raw_data " + \
-            "where lat is not null and lon is not null and uuid is not null "+\
-            "and time is not null and lat>0 and lon>0 and time>0 group by "+\
-            "uuid, time, lat, lon;"
+        if(timeFieldType == "bigint"):
+          sql = "create table if not exists " + self.project_id + \
+                "_spatio_temporal_raw_data(uuid string, lon double, lat double, " + \
+                "time bigint) partitioned by (date_p string); " + \
+                "insert overwrite table " + self.project_id + \
+                "_spatio_temporal_raw_data partition(date_p) select " + \
+                "uuid, lon, lat, time" +\
+                ", to_char(from_unixtime(time), 'yyyymmdd') as date_p "+\
+                "from " + self.project_id + "_customer_raw_data " + \
+                "where lat is not null and lon is not null and uuid is not null "+\
+                "and time is not null and lat>0 and lon>0 and time>0 group by "+\
+                "uuid, time, lat, lon;"
+        elif(timeFieldType == "datetime"):
+          # Time format: 2015-06-21 04:01:00
+          field_list = "uuid, lon, lat, unix_timestamp(time)"
+          sql = "create table if not exists " + self.project_id + \
+                "_spatio_temporal_raw_data(uuid string, lon double, lat double, " + \
+                "time bigint) partitioned by (date_p string); " + \
+                "insert overwrite table " + self.project_id + \
+                "_spatio_temporal_raw_data partition(date_p) select " + \
+                "uuid, lon, lat, unix_timestamp(time)" +\
+                ", to_char(time, 'yyyymmdd') as date_p "+\
+                "from " + self.project_id + "_customer_raw_data " + \
+                "where lat is not null and lon is not null and uuid is not null "+\
+                "and time is not null and lat>0 and lon>0 and "+\
+                "unix_timestamp(time)>0 group by "+\
+                "uuid, time, lat, lon;"
+        else:
+          plog("Warning: project_id: " + self.project_id + ", task_id: " 
+              + task_id + " time format not supported")
+          progress = 0
+          self.render('transform_to_inner_format_result.html',
+                      project_id = self.project_id,
+                      task_id = task_id,
+                      ret_msg = "Time format not supported")
+          return
       plog("sql: " + sql)
       BaseHandler.runCmd(self, sql, \
           "transform_to_inner_format_process", self.doTransformToInnerFormat)
