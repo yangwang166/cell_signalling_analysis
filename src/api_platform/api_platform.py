@@ -445,7 +445,8 @@ class UploadHandler(tornado.web.RequestHandler, BaseHandler):
         # 构造阿里云上运行的sql
         upload_cmd = "truncate table " + aliyun_table + ";" + \
                      "tunnel upload " + data_path + " " + aliyun_table +\
-                     " -bs 10 -threads " + threads_num + " -s true"
+                     " -bs 10 -threads " + threads_num + " -s true" +\
+                     " -dbr true -mbr 999999999"
         # 调用阿里云执行sql
         BaseHandler.runCmd(self, upload_cmd, "upload_process", self.doUpload)
       elif(timeFieldType=="datetime"):
@@ -454,7 +455,7 @@ class UploadHandler(tornado.web.RequestHandler, BaseHandler):
         upload_cmd = "truncate table " + aliyun_table + ";" +\
                      "tunnel upload " + data_path + " " + aliyun_table +\
                      " -bs 10 -threads " + threads_num + " -s true" +\
-                     " -dfp 'yyyy-MM-dd HH:mm:ss'" 
+                     " -dbr true -mbr 999999999 -dfp 'yyyy-MM-dd HH:mm:ss'" 
         # 调用阿里云执行sql
         BaseHandler.runCmd(self, upload_cmd, "upload_process", self.doUpload)
       else:
