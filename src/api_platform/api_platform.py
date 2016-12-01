@@ -39,7 +39,8 @@ _task_id = {"create_customer_raw_data_table":1,
             "compute_filtered_data_stat":9,
             "compute_base_station_hour_summary":10,
             "download_base_station_hour_summary":11,
-            "compute_uuid_cell_hour":12
+            "compute_uuid_cell_hour":12,
+            "delete_all_tables":13
           }
 
 _download_folder = _project_home + "/downloads"
@@ -99,6 +100,8 @@ class Application(tornado.web.Application):
                 TestComputeUuidCellHourHandler),
               (r'/test_get_uuid_cell_hour',                # 19
                 TestGetUuidCellHourHandler),
+              (r'/test_delete_all_tables',                 # 20
+                TestDeleteAllTablesHandler),
 
               (r'/create_customer_raw_data',               # 1
                 CreateCustomerRawDataHandler),
@@ -138,6 +141,8 @@ class Application(tornado.web.Application):
                 ComputeUuidCellHourHandler),
               (r'/get_uuid_cell_hour',                     # 19
                 GetUuidCellHourHandler),
+              (r'/delete_all_tables',                      # 20
+                DeleteAllTablesHandler),
              ]
     settings = dict(
       template_path=os.path.join(os.path.dirname(__file__), "templates"),
@@ -244,6 +249,11 @@ class TestComputeUuidCellHourHandler(tornado.web.RequestHandler):
 class TestGetUuidCellHourHandler(tornado.web.RequestHandler):
   def get(self):
     self.render('test_get_uuid_cell_hour.html')
+
+# 20
+class TestDeleteAllTablesHandler(tornado.web.RequestHandler):
+  def get(self):
+    self.render('test_delete_all_tables.html')
 
 class BaseHandler():
   def runProcess(self, exe):    
@@ -1757,6 +1767,57 @@ class GetUuidCellHourHandler(tornado.web.RequestHandler, BaseHandler):
     obj = {'project_id' : project_id,
            'odps_table' : project_id + "_uuid_cell_hour",
            'ret_msg' : "Success"}
+    self.write(json_encode(obj))
+
+# 20
+class DeleteAllTablesHandler(tornado.web.RequestHandler, BaseHandler):
+  def doDeleteAllTables(self, exe):
+    name = multiprocessing.current_process().name
+    plog(name + ": " + "Starting")
+    db_client = MongoClient('localhost', 27017)
+    db = db_client[self.project_id + "_db"]
+    collection = db["task-progress"]
+    progress = 0
+    result = collection.delete_many({
+             "project_id": self.project_id,
+             "task_id": _task_id["delete_all_tables"]})
+    result = collection.insert_one(
+        { "project_id" : self.project_id,
+          "task_id" : _task_id["delete_all_tables"],
+          "progress" : progress,
+          "lastModified" : datetime.datetime.utcnow()
+        }
+    )
+    count = 0
+    for line in BaseHandler.runProcess(self, exe):
+      print line,
+      if "OK" in line:
+        count += 1 
+      if count == 5:
+        progress = 100
+        result = collection.update_one(
+          {"project_id" : self.project_id, 
+            "task_id" : _task_id["delete_all_tables"] },
+          {
+            "$set": {
+              "progress": progress 
+            },
+            "$currentDate": {"lastModified": True}
+          }
+        )
+    plog(name + ": " + "Exiting")
+    db_client.close()
+  def post(self):
+    self.project_id = self.get_argument('project_id');
+    plog("project_id: " + self.project_id)
+    sql = "drop table if exists " + self.project_id + "_customer_raw_data; " + \
+          "drop table if exists " + self.project_id + "_spatio_temporal_raw_data; " + \
+          "drop table if exists " + self.project_id + "_base_station_info; " + \
+          "drop table if exists " + self.project_id + "_base_station_hour_summary; " + \
+          "drop table if exists " + self.project_id + "_uuid_cell_hour; " 
+    BaseHandler.runCmd(self, sql, \
+        "delete_all_tables", self.doDeleteAllTables)
+    obj = {'return_msg' : "Success"}
     self.write(json_encode(obj))
 
 if __name__ == '__main__':
