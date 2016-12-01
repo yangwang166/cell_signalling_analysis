@@ -13,6 +13,7 @@ import tornado.httpserver
 import tornado.ioloop
 import tornado.options
 import tornado.web
+from tornado.escape import json_encode
 from tornado.options import define, options
 
 define("port", default=8000, help="run on the given port", type=int)
@@ -330,11 +331,13 @@ class CreateCustomerRawDataHandler(tornado.web.RequestHandler, BaseHandler):
       if(not self.isValidType(f_type)):
         is_valid = False
     if is_valid:
-      return_msg = "建表成功"
+      return_msg = "Create table successful"
     else:
-      return_msg = "类型不正确, 请仔细检查"
-      self.render('create_customer_raw_data_result.html',
-                  return_msg = return_msg)
+      return_msg = "Type error, please check"
+      #self.render('create_customer_raw_data_result.html',
+      #            return_msg = return_msg)
+      obj = {'return_msg' : return_msg}
+      self.write(json_encode(obj))
       return
     fields_list = fields_raw.replace("#", " ")
     sql = "drop table if exists " + self.project_id + "_customer_raw_data; " + \
@@ -357,8 +360,10 @@ class CreateCustomerRawDataHandler(tornado.web.RequestHandler, BaseHandler):
         }
     )
     db_client.close()
-    self.render('create_customer_raw_data_result.html',
-                return_msg = return_msg)
+    #self.render('create_customer_raw_data_result.html',
+    #            return_msg = return_msg)
+    obj = {'return_msg' : return_msg}
+    self.write(json_encode(obj))
 
 # 2
 class UploadHandler(tornado.web.RequestHandler, BaseHandler):
@@ -461,37 +466,61 @@ class UploadHandler(tornado.web.RequestHandler, BaseHandler):
       else:
         plog("Warning: project_id: " + self.project_id + ", task_id: " 
             + task_id + " time field format not support now.")
-        self.render('upload_result.html',
-                    project_id = self.project_id,
-                    data_path = data_path,
-                    aliyun_table = aliyun_table,
-                    threads_num = threads_num,
-                    row_delimiter = row_delimiter,
-                    col_delimiter = col_delimiter,
-                    ret_msg = "Time field format not support")
+        #self.render('upload_result.html',
+        #            project_id = self.project_id,
+        #            data_path = data_path,
+        #            aliyun_table = aliyun_table,
+        #            threads_num = threads_num,
+        #            row_delimiter = row_delimiter,
+        #            col_delimiter = col_delimiter,
+        #            ret_msg = "Time field format not support")
+        obj = {'project_id' : project_id,
+               'data_path' : data_path,
+               'aliyun_table' : aliyun_table,
+               'threads_num' : threads_num,
+               'row_delimiter' : row_delimiter,
+               'col_delimiter' : col_delimiter,
+               'ret_msg' : "Time field format not support"}
+        self.write(json_encode(obj))
         return
     else:
       plog("Warning: project_id: " + self.project_id + ", task_id: " 
           + task_id + " has more than one progess record")
-      self.render('upload_result.html',
-                  project_id = self.project_id,
-                  data_path = data_path,
-                  aliyun_table = aliyun_table,
-                  threads_num = threads_num,
-                  row_delimiter = row_delimiter,
-                  col_delimiter = col_delimiter,
-                  ret_msg = "Error")
+      #self.render('upload_result.html',
+      #            project_id = self.project_id,
+      #            data_path = data_path,
+      #            aliyun_table = aliyun_table,
+      #            threads_num = threads_num,
+      #            row_delimiter = row_delimiter,
+      #            col_delimiter = col_delimiter,
+      #            ret_msg = "Error")
+      obj = {'project_id' : project_id,
+             'data_path' : data_path,
+             'aliyun_table' : aliyun_table,
+             'threads_num' : threads_num,
+             'row_delimiter' : row_delimiter,
+             'col_delimiter' : col_delimiter,
+             'ret_msg' : "Error"}
+      self.write(json_encode(obj))
       return
     db_client.close()
     # 渲染结果页面
-    self.render('upload_result.html', 
-                project_id = self.project_id,
-                data_path = data_path,
-                aliyun_table = aliyun_table,
-                threads_num = threads_num,
-                row_delimiter = row_delimiter,
-                col_delimiter = col_delimiter,
-                ret_msg = "Success")
+    #self.render('upload_result.html', 
+    #            project_id = self.project_id,
+    #            data_path = data_path,
+    #            aliyun_table = aliyun_table,
+    #            threads_num = threads_num,
+    #            row_delimiter = row_delimiter,
+    #            col_delimiter = col_delimiter,
+    #            ret_msg = "Success")
+    obj = {'project_id' : self.project_id,
+           'data_path' : data_path,
+           'aliyun_table' : aliyun_table,
+           'threads_num' : threads_num,
+           'row_delimiter' : row_delimiter,
+           'col_delimiter' : col_delimiter,
+           'ret_msg' : "Success"}
+    self.write(json_encode(obj))
 
 
 # 3
@@ -514,18 +543,28 @@ class RequestTaskProgressHandler(tornado.web.RequestHandler):
       plog("Warning: project_id: " + project_id + ", task_id: " + task_id
            + " has more than one progess record")
       progress = 0
-      self.render('request_task_progress_result.html',
-                  project_id = project_id,
-                  task_id = task_id,
-                  progress = progress,
-                  ret_msg = "Error")
+      #self.render('request_task_progress_result.html',
+      #            project_id = project_id,
+      #            task_id = task_id,
+      #            progress = progress,
+      #            ret_msg = "Error")
+      obj = {'project_id' : project_id,
+             'task_id' : task_id,
+             'progress' : progress,
+             'ret_msg' : "Error"}
+      self.write(json_encode(obj))
       return
     db_client.close()
-    self.render('request_task_progress_result.html',
-                project_id = project_id,
-                task_id = task_id,
-                progress = progress,
-                ret_msg = "Success")
+    #self.render('request_task_progress_result.html',
+    #            project_id = project_id,
+    #            task_id = task_id,
+    #            progress = progress,
+    #            ret_msg = "Success")
+    obj = {'project_id' : project_id,
+           'task_id' : task_id,
+           'progress' : progress,
+           'ret_msg' : "Success"}
+    self.write(json_encode(obj))
 
 # 4
 class TransformToInnerFormatHandler(tornado.web.RequestHandler, BaseHandler):
@@ -658,10 +697,14 @@ class TransformToInnerFormatHandler(tornado.web.RequestHandler, BaseHandler):
           plog("Warning: project_id: " + self.project_id + ", task_id: " 
               + task_id + " time format not supported")
           progress = 0
-          self.render('transform_to_inner_format_result.html',
-                      project_id = self.project_id,
-                      task_id = task_id,
-                      ret_msg = "Time format not supported")
+          #self.render('transform_to_inner_format_result.html',
+          #            project_id = self.project_id,
+          #            task_id = task_id,
+          #            ret_msg = "Time format not supported")
+          obj = {'project_id' : project_id,
+                 'task_id' : task_id,
+                 'ret_msg' : "Time format not supported"}
+          self.write(json_encode(obj))
           return
       plog("sql: " + sql)
       BaseHandler.runCmd(self, sql, \
@@ -670,17 +713,25 @@ class TransformToInnerFormatHandler(tornado.web.RequestHandler, BaseHandler):
       plog("Warning: project_id: " + self.project_id + ", task_id: " 
           + task_id + " has more than one progess record")
       progress = 0
-      self.render('transform_to_inner_format_result.html',
-                  project_id = self.project_id,
-                  task_id = task_id,
-                  ret_msg = "Error")
+      #self.render('transform_to_inner_format_result.html',
+      #            project_id = self.project_id,
+      #            task_id = task_id,
+      #            ret_msg = "Error")
+      obj = {'project_id' : project_id,
+             'task_id' : task_id,
+             'ret_msg' : "Error"}
+      self.write(json_encode(obj))
       return
     db_client.close()
-    self.render('transform_to_inner_format_result.html',
-                project_id = self.project_id,
-                task_id = task_id,
-                fields_raw = fields_raw,
-                ret_msg = "Success")
+    #self.render('transform_to_inner_format_result.html',
+    #            project_id = self.project_id,
+    #            task_id = task_id,
+    #            fields_raw = fields_raw,
+    #            ret_msg = "Success")
+    obj = {'project_id' : self.project_id,
+           'task_id' : task_id,
+           'ret_msg' : "Success"}
+    self.write(json_encode(obj))
 
 # 5
 class ComputeRawDataStatHandler(tornado.web.RequestHandler, BaseHandler):
@@ -770,9 +821,12 @@ class ComputeRawDataStatHandler(tornado.web.RequestHandler, BaseHandler):
     BaseHandler.runSQL(self, sql, \
         "compute_raw_data_stat", self.doComputeRawDataStat)
     # 渲染结果页面
-    self.render('compute_raw_data_stat_result.html',
-                project_id = self.project_id,
-                ret_msg = "Success")
+    #self.render('compute_raw_data_stat_result.html',
+    #            project_id = self.project_id,
+    #            ret_msg = "Success")
+    obj = {'project_id' : self.project_id,
+           'ret_msg' : "Success"}
+    self.write(json_encode(obj))
 
 # 6
 class GetRawDataStatHandler(tornado.web.RequestHandler, BaseHandler):
@@ -790,21 +844,30 @@ class GetRawDataStatHandler(tornado.web.RequestHandler, BaseHandler):
     if(cursor.count() == 1):
       raw_stat = cursor.next()["result"]
     else:
-      plog("Warning: project_id: " + project_id + ", task_id: " + task_id
+      plog("Warning: project_id: " + project_id + ", task_id: " 
+           + str(_task_id["compute_raw_data_stat"])
            + " has more than one progess record")
       raw_stat = ""
-      self.render('get_raw_data_stat_result.html',
-                  project_id = project_id,
-                  result = raw_stat,
-                  ret_msg = "Error")
+      #self.render('get_raw_data_stat_result.html',
+      #            project_id = project_id,
+      #            result = raw_stat,
+      #            ret_msg = "Error")
+      obj = {'project_id' : project_id,
+             'result' : raw_stat,
+             'ret_msg' : "Error"}
+      self.write(json_encode(obj))
       return
     db_client.close()
     plog("Get raw stat: " + str(raw_stat))
     # 渲染结果页面
-    self.render('get_raw_data_stat_result.html',
-                project_id = project_id,
-                result = raw_stat,
-                ret_msg = "Success")
+    #self.render('get_raw_data_stat_result.html',
+    #            project_id = project_id,
+    #            result = raw_stat,
+    #            ret_msg = "Success")
+    obj = {'project_id' : project_id,
+           'result' : raw_stat,
+           'ret_msg' : "Success"}
+    self.write(json_encode(obj))
 
 # 7
 class ComputePeopleDistributionHandler(tornado.web.RequestHandler, BaseHandler):
@@ -918,12 +981,18 @@ class ComputePeopleDistributionHandler(tornado.web.RequestHandler, BaseHandler):
     )
     db_client.close()
     # 渲染结果页面
-    self.render('compute_people_distribution_result.html',
-                project_id = self.project_id,
-                interval_size = self.interval_size,
-                date_p = self.date_p,
-                top_n = self.top_n,
-                ret_msg = "Success")
+    #self.render('compute_people_distribution_result.html',
+    #            project_id = self.project_id,
+    #            interval_size = self.interval_size,
+    #            date_p = self.date_p,
+    #            top_n = self.top_n,
+    #            ret_msg = "Success")
+    obj = {'project_id' : self.project_id,
+           'interval_size' : self.interval_size,
+           'date_p' : self.date_p,
+           'top_n' : self.top_n,
+           'ret_msg' : "Success"}
+    self.write(json_encode(obj))
 
 # 8
 class GetPeopleDistributionHandler(tornado.web.RequestHandler, BaseHandler):
@@ -946,25 +1015,38 @@ class GetPeopleDistributionHandler(tornado.web.RequestHandler, BaseHandler):
       interval_size = res["interval_size"]
       top_n = res["top_n"]
     else:
-      plog("Warning: project_id: " + project_id + ", task_id: " + task_id
+      plog("Warning: project_id: " + project_id + ", task_id: " 
+           + str(_task_id["compute_people_distribution"]) 
            + " has more than one progess record")
       people_distribution = ""
-      self.render('get_people_distribution_result.html',
-                  project_id = project_id,
-                  people_distribution = people_distribution,
-                  interval_size = interval_size,
-                  top_n = top_n,
-                  ret_msg = "Error")
+      #self.render('get_people_distribution_result.html',
+      #            project_id = project_id,
+      #            people_distribution = people_distribution,
+      #            interval_size = interval_size,
+      #            top_n = top_n,
+      #            ret_msg = "Error")
+      obj = {'project_id' : project_id,
+             'people_distribution' : people_distribution,
+             'interval_size' : interval_size,
+             'top_n' : top_n,
+             'ret_msg' : "Error"}
+      self.write(json_encode(obj))
       return
     db_client.close()
     plog("Get people_distribution: " + str(people_distribution))
     # 渲染结果页面
-    self.render('get_people_distribution_result.html',
-                project_id = project_id,
-                people_distribution = people_distribution,
-                interval_size = interval_size,
-                top_n = top_n,
-                ret_msg = "Success")
+    #self.render('get_people_distribution_result.html',
+    #            project_id = project_id,
+    #            people_distribution = people_distribution,
+    #            interval_size = interval_size,
+    #            top_n = top_n,
+    #            ret_msg = "Success")
+    obj = {'project_id' : project_id,
+           'people_distribution' : people_distribution,
+           'interval_size' : interval_size,
+           'top_n' : top_n,
+           'ret_msg' : "Success"}
+    self.write(json_encode(obj))
 
 # 9
 class ComputeBaseStationInfoHandler(tornado.web.RequestHandler, BaseHandler):
@@ -1042,9 +1124,12 @@ class ComputeBaseStationInfoHandler(tornado.web.RequestHandler, BaseHandler):
     BaseHandler.runSQL2(self, sql1, sql2, \
         "compute_raw_data_stat", self.doComputeBaseStationInfo)
     # 渲染结果页面
-    self.render('compute_base_station_info_result.html',
-                project_id = self.project_id,
-                ret_msg = "Success")
+    #self.render('compute_base_station_info_result.html',
+    #            project_id = self.project_id,
+    #            ret_msg = "Success")
+    obj = {'project_id' : self.project_id,
+           'ret_msg' : "Success"}
+    self.write(json_encode(obj))
 
 # 10
 class DownloadBaseStationInfoHandler(tornado.web.RequestHandler, BaseHandler):
@@ -1115,9 +1200,12 @@ class DownloadBaseStationInfoHandler(tornado.web.RequestHandler, BaseHandler):
         "download_base_station_info", \
         self.doDownloadBaseStationInfo)
     # 渲染结果页面
-    self.render('compute_base_station_info_result.html',
-                project_id = self.project_id,
-                ret_msg = "Success")
+    #self.render('compute_base_station_info_result.html',
+    #            project_id = self.project_id,
+    #            ret_msg = "Success")
+    obj = {'project_id' : self.project_id,
+           'ret_msg' : "Success"}
+    self.write(json_encode(obj))
 
 # 11
 class GetBaseStationInfoHandler(tornado.web.RequestHandler, BaseHandler):
@@ -1125,10 +1213,15 @@ class GetBaseStationInfoHandler(tornado.web.RequestHandler, BaseHandler):
     # 解析输入的参数
     project_id = self.get_argument('project_id');
     # 渲染结果页面
-    self.render('get_raw_data_stat_result.html',
-                project_id = project_id,
-                result = _download_folder,
-                ret_msg = "Success")
+    #self.render('get_raw_data_stat_result.html',
+    #            project_id = project_id,
+    #            result = _download_folder,
+    #            ret_msg = "Success")
+    obj = {'project_id' : project_id,
+           'download_folder' : _download_folder,
+           'ret_msg' : "Success"}
+    self.write(json_encode(obj))
+
 # 12
 class FilterDataWithRangeHandler(tornado.web.RequestHandler, BaseHandler):
   def doFilterDataWithRange(self, sql1, sql2):
@@ -1237,11 +1330,17 @@ class FilterDataWithRangeHandler(tornado.web.RequestHandler, BaseHandler):
     )
     db_client.close()
     # 渲染结果页面
-    self.render('filter_data_with_range_result.html',
-                project_id = self.project_id,
-                count_min = self.count_min,
-                count_max = self.count_max,
-                ret_msg = "Success")
+    #self.render('filter_data_with_range_result.html',
+    #            project_id = self.project_id,
+    #            count_min = self.count_min,
+    #            count_max = self.count_max,
+    #            ret_msg = "Success")
+    obj = {'project_id' : self.project_id,
+           'count_min' : self.count_min,
+           'count_max' : self.count_max,
+           'ret_msg' : "Success"}
+    self.write(json_encode(obj))
+
 # 13
 class ComputeFilteredDataStatHandler(tornado.web.RequestHandler, BaseHandler):
   def processResult(self, raw):
@@ -1330,9 +1429,12 @@ class ComputeFilteredDataStatHandler(tornado.web.RequestHandler, BaseHandler):
     BaseHandler.runSQL(self, sql, \
         "compute_filtered_data_stat", self.doComputeFilteredDataStat)
     # 渲染结果页面
-    self.render('compute_filtered_data_stat_result.html',
-                project_id = self.project_id,
-                ret_msg = "Success")
+    #self.render('compute_filtered_data_stat_result.html',
+    #            project_id = self.project_id,
+    #            ret_msg = "Success")
+    obj = {'project_id' : self.project_id,
+           'ret_msg' : "Success"}
+    self.write(json_encode(obj))
 
 # 14
 class GetFilteredDataStatHandler(tornado.web.RequestHandler, BaseHandler):
@@ -1350,20 +1452,29 @@ class GetFilteredDataStatHandler(tornado.web.RequestHandler, BaseHandler):
     if(cursor.count() == 1):
       filtered_stat = cursor.next()["result"]
     else:
-      plog("Warning: project_id: " + project_id + ", task_id: " + task_id
+      plog("Warning: project_id: " + project_id + ", task_id: " 
+           + str(_task_id["filter_data_with_range"])
            + " has more than one progess record")
       filtered_stat = ""
-      self.render('get_filtered_data_stat_result.html',
-                  project_id = project_id,
-                  result = filtered_stat,
-                  ret_msg = "Error")
+      #self.render('get_filtered_data_stat_result.html',
+      #            project_id = project_id,
+      #            result = filtered_stat,
+      #            ret_msg = "Error")
+      obj = {'project_id' : project_id,
+             'filtered_stat' : filtered_stat,
+             'ret_msg' : "Error"}
+      self.write(json_encode(obj))
       return
     db_client.close()
     # 渲染结果页面
-    self.render('get_filtered_data_stat_result.html',
-                project_id = project_id,
-                result = filtered_stat,
-                ret_msg = "Success")
+    #self.render('get_filtered_data_stat_result.html',
+    #            project_id = project_id,
+    #            result = filtered_stat,
+    #            ret_msg = "Success")
+    obj = {'project_id' : project_id,
+           'filtered_stat' : filtered_stat,
+           'ret_msg' : "Success"}
+    self.write(json_encode(obj))
 
 # 15
 class ComputeBaseStationHourSummaryHandler(tornado.web.RequestHandler, 
@@ -1447,9 +1558,12 @@ class ComputeBaseStationHourSummaryHandler(tornado.web.RequestHandler,
         "compute_base_station_hour_summary", \
         self.doComputeBaseStationHourSummary)
     # 渲染结果页面
-    self.render('compute_base_station_hour_summary_result.html',
-                project_id = self.project_id,
-                ret_msg = "Success")
+    #self.render('compute_base_station_hour_summary_result.html',
+    #            project_id = self.project_id,
+    #            ret_msg = "Success")
+    obj = {'project_id' : self.project_id,
+           'ret_msg' : "Success"}
+    self.write(json_encode(obj))
 
 # 16
 class DownloadBaseStationHourSummaryHandler(tornado.web.RequestHandler, 
@@ -1522,9 +1636,12 @@ class DownloadBaseStationHourSummaryHandler(tornado.web.RequestHandler,
         "download_base_station_hour_summary", \
         self.doDownloadBaseStationHourSummary)
     # 渲染结果页面
-    self.render('download_base_station_hour_summary_result.html',
-                project_id = self.project_id,
-                ret_msg = "Success")
+    #self.render('download_base_station_hour_summary_result.html',
+    #            project_id = self.project_id,
+    #            ret_msg = "Success")
+    obj = {'project_id' : self.project_id,
+           'ret_msg' : "Success"}
+    self.write(json_encode(obj))
 
 # 17
 class GetBaseStationHourSummaryHandler(tornado.web.RequestHandler, BaseHandler):
@@ -1532,10 +1649,14 @@ class GetBaseStationHourSummaryHandler(tornado.web.RequestHandler, BaseHandler):
     # 解析输入的参数
     project_id = self.get_argument('project_id');
     # 渲染结果页面
-    self.render('get_base_station_hour_summary_result.html',
-                project_id = project_id,
-                result = _download_folder,
-                ret_msg = "Success")
+    #self.render('get_base_station_hour_summary_result.html',
+    #            project_id = project_id,
+    #            result = _download_folder,
+    #            ret_msg = "Success")
+    obj = {'project_id' : project_id,
+           'download_folder' : _download_folder,
+           'ret_msg' : "Success"}
+    self.write(json_encode(obj))
 
 # 18
 class ComputeUuidCellHourHandler(tornado.web.RequestHandler, BaseHandler):
@@ -1616,9 +1737,12 @@ class ComputeUuidCellHourHandler(tornado.web.RequestHandler, BaseHandler):
         "compute_uuid_cell_hour", \
         self.doComputeUuidCellHour)
     # 渲染结果页面
-    self.render('compute_uuid_cell_hour_result.html',
-                project_id = self.project_id,
-                ret_msg = "Success")
+    #self.render('compute_uuid_cell_hour_result.html',
+    #            project_id = self.project_id,
+    #            ret_msg = "Success")
+    obj = {'project_id' : self.project_id,
+           'ret_msg' : "Success"}
+    self.write(json_encode(obj))
 
 # 19
 class GetUuidCellHourHandler(tornado.web.RequestHandler, BaseHandler):
@@ -1626,10 +1750,14 @@ class GetUuidCellHourHandler(tornado.web.RequestHandler, BaseHandler):
     # 解析输入的参数
     project_id = self.get_argument('project_id');
     # 渲染结果页面
-    self.render('get_uuid_cell_hour_result.html',
-                project_id = project_id,
-                result = project_id + "_uuid_cell_hour",
-                ret_msg = "Success")
+    #self.render('get_uuid_cell_hour_result.html',
+    #            project_id = project_id,
+    #            result = project_id + "_uuid_cell_hour",
+    #            ret_msg = "Success")
+    obj = {'project_id' : project_id,
+           'odps_table' : project_id + "_uuid_cell_hour",
+           'ret_msg' : "Success"}
+    self.write(json_encode(obj))
 
 if __name__ == '__main__':
   tornado.options.parse_command_line()
