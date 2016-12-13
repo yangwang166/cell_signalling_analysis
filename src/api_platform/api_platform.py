@@ -792,6 +792,7 @@ class ComputeRawDataStatHandler(tornado.web.RequestHandler, BaseHandler):
       )
       time.sleep(5) 
     raw_result = instance.get_task_result(instance.get_task_names()[0])
+    plog("raw_result: " + raw_result)
     collection2 = db["local-result"]
     raw_stat = self.processResult(raw_result)
     result = collection2.delete_many({
@@ -823,9 +824,16 @@ class ComputeRawDataStatHandler(tornado.web.RequestHandler, BaseHandler):
     # 解析输入的参数
     self.project_id = self.get_argument('project_id');
     # 构造阿里云上运行的sql
-    sql = ('select date_p, count(*) as count from ' 
+    # day
+    #sql = ('select date_p, count(*) as count from ' 
+    #       '' + self.project_id + '_spatio_temporal_raw_data ' 
+    #       'group by date_p order by date_p limit 100')
+    # hour
+    sql = ('select to_char(from_unixtime(time), "yyyyMMddHH") as hour, '
+           'count(*) as count from ' 
            '' + self.project_id + '_spatio_temporal_raw_data ' 
-           'group by date_p order by date_p limit 100')
+           'group by to_char(from_unixtime(time), "yyyyMMddHH") '
+           'order by hour limit 2400')
     plog("sql: " + sql)
     # 调用阿里云执行sql
     BaseHandler.runSQL(self, sql, \
@@ -1806,7 +1814,82 @@ class DeleteAllTablesHandler(tornado.web.RequestHandler, BaseHandler):
           }
         )
     plog(name + ": " + "Exiting")
+    #delete all local meta data
+    ## task-progress
+    collection = db["task-progress"]
+    ### create_customer_raw_data_table
+    result = collection.delete_many({
+             "project_id": self.project_id,
+             "task_id": _task_id["create_customer_raw_data_table"]})
+    ### upload_customer_raw_data
+    result = collection.delete_many({
+             "project_id": self.project_id,
+             "task_id": _task_id["upload_customer_raw_data"]})
+    ### transform_to_spatio_temporal_raw_data
+    result = collection.delete_many({
+             "project_id": self.project_id,
+             "task_id": _task_id["transform_to_spatio_temporal_raw_data"]})
+    ### compute_raw_data_stat
+    result = collection.delete_many({
+             "project_id": self.project_id,
+             "task_id": _task_id["compute_raw_data_stat"]})
+    ### compute_people_distribution
+    result = collection.delete_many({
+             "project_id": self.project_id,
+             "task_id": _task_id["compute_people_distribution"]})
+    ### compute_base_station_info
+    result = collection.delete_many({
+             "project_id": self.project_id,
+             "task_id": _task_id["compute_base_station_info"]})
+    ### download_base_station_info
+    result = collection.delete_many({
+             "project_id": self.project_id,
+             "task_id": _task_id["download_base_station_info"]})
+    ### filter_data_with_range
+    result = collection.delete_many({
+             "project_id": self.project_id,
+             "task_id": _task_id["filter_data_with_range"]})
+    ### compute_filtered_data_stat
+    result = collection.delete_many({
+             "project_id": self.project_id,
+             "task_id": _task_id["compute_filtered_data_stat"]})
+    ### compute_base_station_hour_summary
+    result = collection.delete_many({
+             "project_id": self.project_id,
+             "task_id": _task_id["compute_base_station_hour_summary"]})
+    ### download_base_station_hour_summary
+    result = collection.delete_many({
+             "project_id": self.project_id,
+             "task_id": _task_id["download_base_station_hour_summary"]})
+    ### compute_uuid_cell_hour
+    result = collection.delete_many({
+             "project_id": self.project_id,
+             "task_id": _task_id["compute_uuid_cell_hour"]})
+    ### delete_all_tables (remained)
+
+    ## customer_fields
+    collection = db["customer_fields"]
+    ### create_customer_raw_data_table
+    result = collection.delete_many({
+             "project_id": self.project_id,
+             "task_id": _task_id["create_customer_raw_data_table"]})
+
+    ## local-result
+    collection = db["local-result"]
+    ### compute_raw_data_stat
+    result = collection.delete_many({
+             "project_id": self.project_id,
+             "task_id": _task_id["compute_raw_data_stat"]})
+    ### compute_people_distribution
+    result = collection.delete_many({
+             "project_id": self.project_id,
+             "task_id": _task_id["compute_people_distribution"]})
+    ### filter_data_with_range
+    result = collection.delete_many({
+             "project_id": self.project_id,
+             "task_id": _task_id["filter_data_with_range"]})
     db_client.close()
+
   def post(self):
     self.project_id = self.get_argument('project_id');
     plog("project_id: " + self.project_id)
