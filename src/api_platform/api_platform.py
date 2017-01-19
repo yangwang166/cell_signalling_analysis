@@ -1306,7 +1306,7 @@ class FilterDataWithRangeHandler(tornado.web.RequestHandler, BaseHandler):
     self.count_min = self.get_argument('count_min');
     self.count_max = self.get_argument('count_max');
     # 构造阿里云上运行的sql
-    sql1 = ('Create table if not exists ' 
+    sql1 = ('create table if not exists ' 
            '' + self.project_id + '_filtered_raw_data '
            '(uuid string, lon double, lat double, bs_id bigint, '
            'time bigint, count bigint) '
