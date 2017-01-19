@@ -1317,15 +1317,15 @@ class FilterDataWithRangeHandler(tornado.web.RequestHandler, BaseHandler):
            'C.count, C.date_p from '
            '  (select A.uuid, A.lon, A.lat, A.time, B.count, A.date_p '
            '  from ' + self.project_id + '_spatio_temporal_raw_data A '
-           '  inner join '
+           '  left outer join '
            '  (select uuid, count(uuid) as count '
            '  from ' + self.project_id + '_spatio_temporal_raw_data '
-           '  group by uuid '
-           '  having count(uuid) > ' + self.count_min + ' '
-           '  and count(uuid) < ' + self.count_max + ') B '
+           '  group by uuid) B'
            '  on A.uuid = B.uuid) C '
            'left outer join ' + self.project_id + '_base_station_info D '
-           'on C.lon = D.lon and C.lat = D.lat;')
+           'on C.lon = D.lon and C.lat = D.lat '
+           'where C.count > ' + self.count_min + ' '
+           ' and C.count < ' + self.count_max + ';')
     plog("sql1: " + sql1)
     plog("sql2: " + sql2)
     # 调用阿里云执行sql
