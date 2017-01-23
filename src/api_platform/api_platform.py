@@ -40,7 +40,13 @@ _task_id = {"create_customer_raw_data_table":1,
             "compute_base_station_hour_summary":10,
             "download_base_station_hour_summary":11,
             "compute_uuid_cell_hour":12,
-            "delete_all_tables":13
+            "delete_all_tables":13,
+            "compute_peo_roam":30,
+            "compute_peo_type":31,
+            "compute_uuid_od":32,
+            "upload_area_station":33,
+            "compute_business_data":34,
+            "download_business_data":35
           }
 
 _download_folder = _project_home + "/downloads"
@@ -102,6 +108,18 @@ class Application(tornado.web.Application):
                 TestGetUuidCellHourHandler),
               (r'/test_delete_all_tables',                 # 20
                 TestDeleteAllTablesHandler),
+              (r'/test_compute_peo_roam',                  # 30
+                TestComputePeopleRoamHandler),
+              (r'/test_compute_peo_type',                  # 31
+                TestComputePeopleTypeHandler),
+              (r'/test_compute_uuid_od',                   # 32
+                TestComputeODHandler),
+              (r'/test_upload_area_station',               # 33
+                TestUploadAreaStationHandler),
+              (r'/test_compute_business_data',             # 34
+                TestComputeBusinessDataHandler),
+              (r'/test_download_business_data',             # 35
+                TestDownloadBusinessDataHandler),
 
               (r'/create_customer_raw_data',               # 1
                 CreateCustomerRawDataHandler),
@@ -143,6 +161,18 @@ class Application(tornado.web.Application):
                 GetUuidCellHourHandler),
               (r'/delete_all_tables',                      # 20
                 DeleteAllTablesHandler),
+              (r'/compute_peo_roam',                       # 30
+                ComputePeopleRoamHandler),
+              (r'/compute_peo_type',                       # 31
+                ComputePeopleTypeHandler),
+              (r'/compute_uuid_od',                        # 32
+                ComputeODHandler),
+              (r'/upload_area_station',                    # 33
+                UploadCellAreaHandler),
+              (r'/compute_business_data',                  # 34
+                ComputeBusinessDataHandler),
+              (r'/download_business_data',                 # 35
+                DownloadBusinessDataHandler),
              ]
     settings = dict(
       template_path=os.path.join(os.path.dirname(__file__), "templates"),
@@ -255,6 +285,33 @@ class TestDeleteAllTablesHandler(tornado.web.RequestHandler):
   def get(self):
     self.render('test_delete_all_tables.html')
 
+# 30
+class TestComputePeopleRoamHandler(tornado.web.RequestHandler):
+  def get(self):
+    self.render('test_compute_peo_roam.html')
+# 31
+class TestComputePeopleTypeHandler(tornado.web.RequestHandler):
+  def get(self):
+    self.render('test_compute_peo_type.html')
+# 32
+class TestComputeODHandler(tornado.web.RequestHandler):
+  def get(self):
+    self.render('test_compute_uuid_od.html')
+# 33
+class TestUploadAreaStationHandler(tornado.web.RequestHandler):
+  def get(self):
+    self.render('test_upload_area_station.html')
+# 34
+class TestComputeBusinessDataHandler(tornado.web.RequestHandler):
+  def get(self):
+    self.render('test_compute_business_data.html')
+# 35
+class TestDownloadBusinessDataHandler(tornado.web.RequestHandler):
+  def get(self):
+    self.render('test_download_business_data.html')
+
+
+
 class BaseHandler():
   def runProcess(self, exe):    
     p = subprocess.Popen(exe, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -302,6 +359,16 @@ class CreateCustomerRawDataHandler(tornado.web.RequestHandler, BaseHandler):
     db_client = MongoClient('localhost', 27017)
     db = db_client[self.project_id + "_db"]
     collection = db["task-progress"]
+    result = collection.delete_many({
+            "project_id": self.project_id,
+            "task_id": _task_id["create_customer_raw_data_table"]})
+    result = collection.insert_one(
+        { "project_id" : self.project_id,
+          "task_id" : _task_id["create_customer_raw_data_table"],
+          "progress" : 0,
+          "lastModified" : datetime.datetime.utcnow()
+        }
+    )
     for line in BaseHandler.runProcess(self, exe):
       print line,
       if "ID" in line:
@@ -392,6 +459,16 @@ class UploadHandler(tornado.web.RequestHandler, BaseHandler):
     db_client = MongoClient('localhost', 27017)
     db = db_client[self.project_id + "_db"]
     collection = db["task-progress"]
+    result = collection.delete_many({
+         "project_id": self.project_id,
+         "task_id": _task_id["upload_customer_raw_data"]})
+    result = collection.insert_one(
+        { "project_id" : self.project_id,
+          "task_id" : _task_id["upload_customer_raw_data"],
+          "progress" : 0,
+          "lastModified" : datetime.datetime.utcnow()
+        }
+    )
     for line in BaseHandler.runProcess(self, exe):
       print line,
       # extract upload progess and total block
@@ -605,6 +682,16 @@ class TransformToInnerFormatHandler(tornado.web.RequestHandler, BaseHandler):
     db = db_client[self.project_id + "_db"]
     collection = db["task-progress"]
     count = 0;
+    result = collection.delete_many({
+            "project_id": self.project_id,
+            "task_id": _task_id["transform_to_spatio_temporal_raw_data"]})
+    result = collection.insert_one(
+        { "project_id" : self.project_id,
+          "task_id" : _task_id["transform_to_spatio_temporal_raw_data"],
+          "progress" : 0,
+          "lastModified" : datetime.datetime.utcnow()
+        }
+    )
     for line in BaseHandler.runProcess(self, exe):
       print line,
       if "ID" in line:
@@ -1318,14 +1405,30 @@ class FilterDataWithRangeHandler(tornado.web.RequestHandler, BaseHandler):
            '  (select A.uuid, A.lon, A.lat, A.time, B.count, A.date_p '
            '  from ' + self.project_id + '_spatio_temporal_raw_data A '
            '  inner join '
-           '  (select uuid, count(uuid) as count '
-           '  from ' + self.project_id + '_spatio_temporal_raw_data '
-           '  group by uuid '
-           '  having count(uuid) > ' + self.count_min + ' '
-           '  and count(uuid) < ' + self.count_max + ') B '
-           '  on A.uuid = B.uuid) C '
-           'left outer join ' + self.project_id + '_base_station_info D '
-           'on C.lon = D.lon and C.lat = D.lat;')
+           '  (select C.uuid, C.date_p '
+           '  from (select date_p, uuid, count(*) as count from ' 
+           '' + self.project_id + '_spatio_temporal_raw_data '
+           ' group by uuid, date_p) C '
+           ' where C.count>' + self.count_min + ''
+           ' and C.count<' + self.count_max + ') B'
+           ' on A.uuid=B.uuid and A.date_p=B.date_p group by A.date_p;')
+
+    sql2 = ('insert overwrite table ' + self.project_id + '_filtered_raw_data '
+            'partition(date_p) '
+            'select D.uuid, D.lon, D.lat, E.id as bs_id, D.time, '
+            'D.count, D.date_p from '
+            '(select A.uuid, A.lon, A.lat, A.time, B.count, A.date_p '
+            ' from ' + self.project_id + '_spatio_temporal_raw_data A '
+            'inner join '
+            '(select C.uuid, C.date_p, C.count from '
+            '(select date_p, uuid, count(*) as count from '
+            '' + self.project_id + '_spatio_temporal_raw_data '
+            'group by uuid, date_p) C '
+            'where C.count>' + self.count_min + ''
+            ' and C.count<' + self.count_max + ') B '
+            'on A.uuid=B.uuid and A.date_p=B.date_p) D left outer join '
+            '' + self.project_id + '_base_station_info E '
+            'on D.lon=E.lon and D.lat=E.lat;')
     plog("sql1: " + sql1)
     plog("sql2: " + sql2)
     # 调用阿里云执行sql
@@ -1558,17 +1661,14 @@ class ComputeBaseStationHourSummaryHandler(tornado.web.RequestHandler,
     # 构造阿里云上运行的sql
     sql1 = ('create table if not exists ' 
             '' + self.project_id + '_base_station_hour_summary '
-            '(lon double, lat double, bs_id bigint, hour bigint, count bigint)'
-            'partitioned by (date_p string);')
+            '(lon double, lat double, bs_id bigint, time string, count bigint);')
     sql2 = ('insert overwrite table '
             '' + self.project_id + '_base_station_hour_summary '
-            'partition(date_p) '
             'select lon, lat, bs_id, '
-            'datepart(from_unixtime(time), "HH") as hour,'
-            'count(*) as count, date_p '
+            'CONCAT(substr(from_unixtime(time),1,14),\'00:00\') as time,'
+            'count(*) as count '
             'from ' + self.project_id + '_filtered_raw_data '
-            'group by lon, lat, bs_id, datepart(from_unixtime(time), "HH"), '
-            'date_p;')
+            'group by lon, lat, bs_id, substr(from_unixtime(time),1,14);')
     plog("sql1: " + sql1)
     plog("sql2: " + sql2)
     # 调用阿里云执行sql
@@ -1801,7 +1901,7 @@ class DeleteAllTablesHandler(tornado.web.RequestHandler, BaseHandler):
       print line,
       if "OK" in line:
         count += 1 
-      if count == 5:
+      if count == 15:
         progress = 100
         result = collection.update_one(
           {"project_id" : self.project_id, 
@@ -1865,6 +1965,30 @@ class DeleteAllTablesHandler(tornado.web.RequestHandler, BaseHandler):
     result = collection.delete_many({
              "project_id": self.project_id,
              "task_id": _task_id["compute_uuid_cell_hour"]})
+    ### compute_peo_roam
+    result = collection.delete_many({
+             "project_id": self.project_id,
+             "task_id": _task_id["compute_peo_roam"]})
+    ### compute_peo_type
+    result = collection.delete_many({
+             "project_id": self.project_id,
+             "task_id": _task_id["compute_peo_type"]})
+    ### compute_uuid_od
+    result = collection.delete_many({
+             "project_id": self.project_id,
+             "task_id": _task_id["compute_uuid_od"]})
+    ### upload_area_station
+    result = collection.delete_many({
+             "project_id": self.project_id,
+             "task_id": _task_id["upload_area_station"]})
+    ### compute_business_data
+    result = collection.delete_many({
+             "project_id": self.project_id,
+             "task_id": _task_id["compute_business_data"]})
+    ### download_business_data
+    result = collection.delete_many({
+             "project_id": self.project_id,
+             "task_id": _task_id["download_business_data"]})
     ### delete_all_tables (remained)
 
     ## customer_fields
@@ -1893,15 +2017,779 @@ class DeleteAllTablesHandler(tornado.web.RequestHandler, BaseHandler):
   def post(self):
     self.project_id = self.get_argument('project_id');
     plog("project_id: " + self.project_id)
-    sql = "drop table if exists " + self.project_id + "_customer_raw_data; " + \
-          "drop table if exists " + self.project_id + "_spatio_temporal_raw_data; " + \
+    sql = "drop table if exists " + self.project_id + "_spatio_temporal_raw_data; " + \
+          "drop table if exists " + self.project_id + "_filtered_raw_data; " + \
           "drop table if exists " + self.project_id + "_base_station_info; " + \
           "drop table if exists " + self.project_id + "_base_station_hour_summary; " + \
-          "drop table if exists " + self.project_id + "_uuid_cell_hour; " 
+          "drop table if exists " + self.project_id + "_uuid_cell_hour; " +\
+          "drop table if exists " + self.project_id + "_peo_roam; " +\
+          "drop table if exists " + self.project_id + "_uuid_type; " +\
+          "drop table if exists " + self.project_id + "_uuid_od; " +\
+          "drop table if exists " + self.project_id + "_area_station; " +\
+          "drop table if exists " + self.project_id + "_area_od; " +\
+          "drop table if exists " + self.project_id + "_local_peo; " +\
+          "drop table if exists " + self.project_id + "_out_os; " +\
+          "drop table if exists " + self.project_id + "_peo_distr; " +\
+          "drop table if exists " + self.project_id + "_pass_local; " +\
+          "drop table if exists " + self.project_id + "_home_work; "
     BaseHandler.runCmd(self, sql, \
         "delete_all_tables", self.doDeleteAllTables)
     obj = {'return_msg' : "Success"}
     self.write(json_encode(obj))
+
+#30
+class ComputePeopleRoamHandler(tornado.web.RequestHandler, BaseHandler):
+
+  def doComputePeopleRoam(self, sql):
+    # 调用后台阿里云后, 这里处理其返回结果
+    name = multiprocessing.current_process().name
+    plog(name + " " + "Starting")
+    progress = 0
+    # 建立数据库连接
+    db_client = MongoClient('localhost', 27017)
+    db = db_client[self.project_id + "_db"]
+    collection = db["task-progress"]
+    count = 0;
+    result = collection.delete_many({
+             "project_id": self.project_id,
+             "task_id": _task_id["compute_peo_roam"]})
+    result = collection.insert_one(
+        { "project_id" : self.project_id,
+          "task_id" : _task_id["compute_peo_roam"],
+          "progress" : progress,
+          "lastModified" : datetime.datetime.utcnow()
+        }
+    )
+    plog("result.inserted_id: " + str(result.inserted_id))
+
+    instance0 = odps.run_sql("drop table if exists " +self.project_id+"_peo_roam;")
+    while(not instance0.is_successful()):
+      time.sleep(2)
+    plog("drop table SQL runs Successful")
+    instance = odps.run_sql(sql)
+    while(not instance.is_successful()):
+      #plog("is_successful(): " + str(instance.is_successful()))
+      #plog("is_terminated(): " + str(instance.is_terminated()))
+      count += 1
+      progress = int((1.0 * count / (count + 1)) * 100)
+      plog("progress: " + str(progress) + "%")
+      result = collection.update_one(
+        {"project_id" : self.project_id,
+          "task_id" : _task_id["compute_peo_roam"] },
+        {
+          "$set": {
+            "progress": progress
+          },
+          "$currentDate": {"lastModified": True}
+        }
+      )
+      time.sleep(5)
+    progress = 100
+    plog("progress: " + str(progress) + "%")
+    result = collection.update_one(
+      {"project_id" : self.project_id,
+        "task_id" : _task_id["compute_peo_roam"] },
+      {
+        "$set": {
+          "progress": progress
+        },
+        "$currentDate": {"lastModified": True}
+      }
+    )
+    db_client.close()
+    plog("result.matched_count: "+str(result.matched_count))
+    plog("result.modified_count: "+str(result.modified_count))
+  def post(self):
+    # 解析输入的参数
+    self.project_id = self.get_argument('project_id');
+    # 构造阿里云上运行的sql
+    sql = ('create table '+self.project_id+'_peo_roam as '
+           'select uuid,is_roam from '
+           '( select uuid,is_roam,row_number()over(partition by uuid order by uuid) flag '
+            'from ' +self.project_id + '_customer_raw_data '
+           ') t where flag=1 and uuid is not null and is_roam is not null;')
+    plog("sql: " + sql)
+    # 调用阿里云执行sql
+    BaseHandler.runSQL(self, sql, \
+        "compute_peo_roam", self.doComputePeopleRoam)
+
+    obj = {'project_id' : self.project_id,
+           'ret_msg' : "Performing"}
+    self.write(json_encode(obj))
+
+#31
+class ComputePeopleTypeHandler(tornado.web.RequestHandler, BaseHandler):
+  def doComputePeopleType(self, sql1, sql2):
+    name = multiprocessing.current_process().name
+    plog(name + " " + "Starting")
+    progress = 0
+    # 建立数据库连接
+    db_client = MongoClient('localhost', 27017)
+    db = db_client[self.project_id + "_db"]
+    collection = db["task-progress"]
+    count = 0;
+    result = collection.delete_many({
+             "project_id": self.project_id,
+             "task_id": _task_id["compute_peo_type"]})
+    result = collection.insert_one(
+        { "project_id" : self.project_id,
+          "task_id" : _task_id["compute_peo_type"],
+          "progress" : progress,
+          "lastModified" : datetime.datetime.utcnow()
+        }
+    )
+    plog("result.inserted_id: " + str(result.inserted_id))
+
+    instance0 = odps.run_sql("drop table if exists " +self.project_id+"_uuid_type;")
+    while(not instance0.is_successful()):
+      time.sleep(2)
+    plog("drop table SQL runs Successful")
+    instance1 = odps.run_sql(sql1)
+    while(not instance1.is_successful()):
+      time.sleep(2)
+    plog("sql1 runs Successful")
+
+    ret = instance1.get_task_result(instance1.get_task_names()[0])
+    mydates = ret.split("\n")[1:-1]
+    plog(mydates)
+    daycount = 0
+    daywork = 0
+    for mydate in mydates:
+        daycount+=1
+        if self.isWorkDay(mydate):
+            daywork+=1
+    #replace parameter
+    sql2r = sql2.replace('PARONE',str(daycount)).replace('PARTWO',str(daywork))
+    plog("compute people type SQL:-"+sql2r)
+
+    instance2 = odps.run_sql(sql2r)
+    while(not instance2.is_successful()):
+      count += 1
+      progress = int((1.0 * count / (count + 1)) * 100)
+      plog("progress: " + str(progress) + "%")
+      result = collection.update_one(
+        {"project_id" : self.project_id,
+          "task_id" : _task_id["compute_peo_type"] },
+        {
+          "$set": {
+            "progress": progress
+          },
+          "$currentDate": {"lastModified": True}
+        }
+      )
+      time.sleep(5)
+    progress = 100
+    plog("progress: " + str(progress) + "%")
+    result = collection.update_one(
+      {"project_id" : self.project_id,
+        "task_id" : _task_id["compute_peo_type"] },
+      {
+        "$set": {
+          "progress": progress
+        },
+        "$currentDate": {"lastModified": True}
+      }
+    )
+    db_client.close()
+    plog("result.matched_count: "+str(result.matched_count))
+    plog("result.modified_count: "+str(result.modified_count))
+  # 判断日期星期几
+  def isWorkDay(self,date_p):
+    f_date=date_p[1:-1]
+    year =f_date[0:4]
+    month=f_date[4:6]
+    day=f_date[6:8]
+    t = datetime.date(int(year),int(month),int(day))
+    week = t.weekday()
+    if week>4:
+        return False
+    return True
+  def post(self):
+    # 解析输入的参数
+    self.project_id = self.get_argument('project_id');
+    self.passvalue = self.get_argument('passvalue');
+    # 构造阿里云上运行的sql
+    sql1 = ('select distinct date_p from '+self.project_id+'_uuid_cell_hour'
+            ' where date_p is not null;')
+    sql2=('create table '+self.project_id+'_uuid_type as '
+         'select usertype(uuid,cell_hour,date_p,is_roam,PARONE,PARTWO,'+self.passvalue+') '
+         'as (uuid,is_roam,cell_w,cell_h,p_t1,p_t2,p_t3,p_t4,p_t5,p_t6) from ( '
+         'select t1.uuid,t1.cell_hour,t1.date_p,t2.is_roam from '+self.project_id+'_uuid_cell_hour t1 '
+         'left outer join '+self.project_id+'_peo_roam t2 '
+         'on t1.uuid=t2.uuid where t2.is_roam is not null '
+         'distribute by uuid sort by uuid,date_p ) t ;')
+    plog("sql: " + sql1)
+    plog("sql: " + sql2)
+    # 调用阿里云执行sql
+    BaseHandler.runSQL2(self,sql1,sql2,"compute_peo_type",\
+                        self.doComputePeopleType)
+
+    obj = {'project_id' : self.project_id,
+           'ret_msg' : "Performing"}
+    self.write(json_encode(obj))
+
+#32
+class ComputeODHandler(tornado.web.RequestHandler, BaseHandler):
+
+  def doComputeOD(self, sql):
+    # 调用后台阿里云后, 这里处理其返回结果
+    name = multiprocessing.current_process().name
+    plog(name + " " + "Starting")
+    progress = 0
+    # 建立数据库连接
+    db_client = MongoClient('localhost', 27017)
+    db = db_client[self.project_id + "_db"]
+    collection = db["task-progress"]
+    count = 0
+    result = collection.delete_many({
+             "project_id": self.project_id,
+             "task_id": _task_id["compute_uuid_od"]})
+    result = collection.insert_one(
+        { "project_id" : self.project_id,
+          "task_id" : _task_id["compute_uuid_od"],
+          "progress" : progress,
+          "lastModified" : datetime.datetime.utcnow()
+        }
+    )
+    plog("result.inserted_id: " + str(result.inserted_id))
+
+    instance0 = odps.run_sql("drop table if exists " +self.project_id+"_uuid_od;")
+    while(not instance0.is_successful()):
+      time.sleep(2)
+    plog("drop table SQL runs Successful")
+    instance = odps.run_sql(sql)
+    while(not instance.is_successful()):
+      #plog("is_successful(): " + str(instance.is_successful()))
+      #plog("is_terminated(): " + str(instance.is_terminated()))
+      count += 1
+      progress = int((1.0 * count / (count + 1)) * 100)
+      plog("progress: " + str(progress) + "%")
+      result = collection.update_one(
+        {"project_id" : self.project_id,
+          "task_id" : _task_id["compute_uuid_od"] },
+        {
+          "$set": {
+            "progress": progress
+          },
+          "$currentDate": {"lastModified": True}
+        }
+      )
+      time.sleep(5)
+    progress = 100
+    plog("progress: " + str(progress) + "%")
+    result = collection.update_one(
+      {"project_id" : self.project_id,
+        "task_id" : _task_id["compute_uuid_od"] },
+      {
+        "$set": {
+          "progress": progress
+        },
+        "$currentDate": {"lastModified": True}
+      }
+    )
+    db_client.close()
+    plog("result.matched_count: "+str(result.matched_count))
+    plog("result.modified_count: "+str(result.modified_count))
+  def post(self):
+    # 解析输入的参数
+    self.project_id = self.get_argument('project_id');
+    # 构造阿里云上运行的sql
+    sql = ('create table '+self.project_id+'_uuid_od as '
+          'select od(uuid,cell_hour,date_p) as (uuid,time,oid,did,stayhour) '
+          'from (select * from '+self.project_id+'_uuid_cell_hour '
+          'distribute by uuid sort by uuid,date_p) d;')
+    plog("sql: " + sql)
+    # 调用阿里云执行sql
+    BaseHandler.runSQL(self, sql, \
+        "compute_uuid_od", self.doComputeOD)
+    # 渲染结果页面
+    obj = {'project_id' : self.project_id,
+           'ret_msg' : "Performing"}
+    self.write(json_encode(obj))
+
+# 33
+class UploadCellAreaHandler(tornado.web.RequestHandler, BaseHandler):
+
+  def doUploadCellArea(self, exe):
+    name = multiprocessing.current_process().name
+    plog(name+" "+"Starting")
+    total = 0
+    finished = 0
+    progress = 0
+    session_id = ""
+    db_client = MongoClient('localhost', 27017)
+    db = db_client[self.project_id + "_db"]
+    collection = db["task-progress"]
+    instance0 = odps.run_sql("drop table if exists " +self.project_id+"_area_station;")
+    while(not instance0.is_successful()):
+      time.sleep(2)
+    plog("drop table SQL runs Successful")
+    sql=('create table if not exists '+self.project_id+'_area_station('
+         'cid bigint,'
+         'area_tid bigint,'
+         'aid bigint);')
+    instance = odps.run_sql(sql)
+    while(not instance.is_successful()):
+      time.sleep(1)
+    plog("sql1 runs Successful")
+
+    for line in BaseHandler.runProcess(self, exe):
+      print line,
+      # extract upload progess and total block
+      if "Upload session" in line:
+        session_id = line.split()[2]
+        plog("session_id: " + session_id)
+        result = collection.delete_many({
+                 "project_id": self.project_id,
+                 "task_id": _task_id["upload_area_station"]})
+        result = collection.insert_one(
+            { "project_id" : self.project_id,
+              "task_id" : _task_id["upload_area_station"],
+              "aliyun_sess_id" : session_id,
+              "progress" : progress,
+              "lastModified" : datetime.datetime.utcnow()
+            }
+        )
+        plog("result.inserted_id: " + str(result.inserted_id))
+      if "Split input to" in line:
+        total = int(line.split()[5])
+        plog("total: " + str(total))
+      elif "upload block complete" in line:
+        finished += 1
+        plog("finished: " + str(finished))
+        progress = int((1.0 * finished / total) * 100)
+        plog("progress: " + str(progress) + "%")
+        result = collection.update_one(
+          {"project_id" : self.project_id,
+            "task_id" : _task_id["upload_area_station"] },
+          {
+            "$set": {
+              "progress": progress
+            },
+            "$currentDate": {"lastModified": True}
+          }
+        )
+        plog("result.matched_count: "+str(result.matched_count))
+        plog("result.modified_count: "+str(result.modified_count))
+    plog(name+" Exiting")
+    db_client.close()
+  def post(self):
+    # 解析输入的参数
+    self.project_id = self.get_argument('project_id')
+    #aliyun_table = self.get_argument('aliyun_table')
+    aliyun_table = self.project_id + "_area_station"
+    # 构造阿里云上运行的sql
+    upload_cmd = "tunnel upload "+_download_folder+"/"+self.project_id+"_cellarea.txt " + aliyun_table +";"
+
+    # 调用阿里云执行sql
+    BaseHandler.runCmd(self, upload_cmd, "upload_area_station", self.doUploadCellArea)
+    # 渲染结果页面
+    obj = {'project_id' : self.project_id,
+           'ret_msg' : "Performing"}
+    self.write(json_encode(obj))
+
+# 34
+class ComputeBusinessDataHandler(tornado.web.RequestHandler, BaseHandler):
+  def doComputeBusinessData(self, project_id):
+    name = multiprocessing.current_process().name
+    plog(name + " " + "Starting")
+    progress = 0
+    # 建立数据库连接
+    db_client = MongoClient('localhost', 27017)
+    db = db_client[self.project_id + "_db"]
+    collection = db["task-progress"]
+    count = 0;
+    result = collection.delete_many({
+             "project_id": self.project_id,
+             "task_id": _task_id["compute_business_data"]})
+    result = collection.insert_one(
+        { "project_id" : self.project_id,
+          "task_id" : _task_id["compute_business_data"],
+          "progress" : progress,
+          "lastModified" : datetime.datetime.utcnow()
+        }
+    )
+    plog("result.inserted_id: " + str(result.inserted_id))
+    instance10 = odps.run_sql("drop table if exists " +self.project_id+"_area_od;")
+    while(not instance10.is_successful()):
+      time.sleep(2)
+    plog("drop table SQL runs Successful")
+    plog("________________________________________________________________________")
+    sql1=('create table '+project_id+'_area_od as  '
+        'select b.aid area_oid,d.aid area_did,a.time,b.area_tid,'
+        ' sum(c.p_t1) p_type1, sum(c.p_t2) p_type2, sum(c.p_t3) p_type3, sum(c.p_t4) p_type4, sum(c.p_t5) p_type5,'
+        ' sum(c.p_t6) p_type6,'
+        ' count(case when c.p_t1=0 and c.p_t2=0 and c.p_t3=0 and c.p_t4=0 and c.p_t5=0 and c.p_t6=0 then 1 end) p_type7'
+        ' from '+project_id+'_uuid_od a left outer join '+project_id+'_uuid_type c on a.uuid=c.uuid'
+        ' left outer join '+project_id+'_area_station b on a.oid=b.cid'
+        ' left outer join '+project_id+'_area_station d on a.did=d.cid'
+        ' where b.aid!=-1 and d.aid!=-1 '
+        ' group by b.aid,d.aid,a.time,b.area_tid; ')
+    plog(sql1)
+    instance1 = odps.run_sql(sql1)
+    while(not instance1.is_successful()):
+      count += 1
+      progress = int((1.0 * count / (count + 1)) * 100)/8
+      plog("progress: " + str(progress) + "%")
+      result = collection.update_one(
+        {"project_id" : self.project_id,
+          "task_id" : _task_id["compute_business_data"] },
+        {
+          "$set": {
+            "progress": progress
+          },
+          "$currentDate": {"lastModified": True}
+        }
+      )
+      time.sleep(5)
+    time.sleep(2)
+    instance20 = odps.run_sql("drop table if exists " +self.project_id+"_out_os;")
+    while(not instance20.is_successful()):
+      time.sleep(2)
+    plog("drop table SQL runs Successful")
+    plog("________________________________________________________________________")
+
+    sql2=('create table '+project_id+'_out_os as '
+         ' select b.lon,b.lat,a.time, '
+         ' sum(c.p_t1) p_type1,'
+         ' sum(c.p_t2) p_type2,'
+         ' sum(c.p_t3) p_type3,'
+         ' sum(c.p_t4) p_type4,'
+         ' sum(c.p_t5) p_type5,'
+         ' sum(c.p_t6) p_type6,'
+         ' sum(case when c.p_t1=0 and c.p_t2=0 and c.p_t3=0 and c.p_t4=0 and c.p_t5=0 and c.p_t6=0 then 1 else 0 end) p_type7 '
+         'from '+project_id+'_uuid_od a '
+         'left outer join '+project_id+'_base_station_info b on a.oid=b.id '
+         'left outer join '+project_id+'_uuid_type c on a.uuid=c.uuid '
+         'group by b.lon,b.lat,a.time;')
+    plog(sql2)
+    instance2 = odps.run_sql(sql2)
+    while(not instance2.is_successful()):
+      count += 1
+      progress = int((1.0 * count / (count + 1)) * 100)/7
+      plog("progress: " + str(progress) + "%")
+      result = collection.update_one(
+        {"project_id" : self.project_id,
+          "task_id" : _task_id["compute_business_data"] },
+        {
+          "$set": {
+            "progress": progress
+          },
+          "$currentDate": {"lastModified": True}
+        }
+      )
+      time.sleep(5)
+    time.sleep(2)
+    #增加D的出行密度
+    instance70 = odps.run_sql("drop table if exists " +self.project_id+"_out_ds;")
+    while(not instance70.is_successful()):
+      time.sleep(2)
+    plog("drop table SQL runs Successful")
+    plog("________________________________________________________________________")
+
+    sql7=('create table '+project_id+'_out_ds as '
+         ' select b.lon,b.lat,a.time, '
+         ' sum(c.p_t1) p_type1,'
+         ' sum(c.p_t2) p_type2,'
+         ' sum(c.p_t3) p_type3,'
+         ' sum(c.p_t4) p_type4,'
+         ' sum(c.p_t5) p_type5,'
+         ' sum(c.p_t6) p_type6,'
+         ' sum(case when c.p_t1=0 and c.p_t2=0 and c.p_t3=0 and c.p_t4=0 and c.p_t5=0 and c.p_t6=0 then 1 else 0 end) p_type7 '
+         'from '+project_id+'_uuid_od a '
+         'left outer join '+project_id+'_base_station_info b on a.did=b.id '
+         'left outer join '+project_id+'_uuid_type c on a.uuid=c.uuid '
+         'group by b.lon,b.lat,a.time;')
+    plog(sql7)
+    instance7 = odps.run_sql(sql7)
+    while(not instance7.is_successful()):
+      count += 1
+      progress = int((1.0 * count / (count + 1)) * 100)/6
+      plog("progress: " + str(progress) + "%")
+      result = collection.update_one(
+        {"project_id" : self.project_id,
+          "task_id" : _task_id["compute_business_data"] },
+        {
+          "$set": {
+            "progress": progress
+          },
+          "$currentDate": {"lastModified": True}
+        }
+      )
+      time.sleep(5)
+    time.sleep(2)
+
+    #增加人群热度
+    instance80 = odps.run_sql("drop table if exists " +self.project_id+"_station_summary;")
+    while(not instance80.is_successful()):
+      time.sleep(2)
+    plog("drop table SQL runs Successful")
+    plog("________________________________________________________________________")
+
+    sql8=('create table '+project_id+'_station_summary as '
+         ' select lon,lat,CONCAT(substr(from_unixtime(time),1,14),\'00:00\') as time, '
+         ' sum(c.p_t1) p_type1,'
+         ' sum(c.p_t2) p_type2,'
+         ' sum(c.p_t3) p_type3,'
+         ' sum(c.p_t4) p_type4,'
+         ' sum(c.p_t5) p_type5,'
+         ' sum(c.p_t6) p_type6,'
+         ' sum(case when c.p_t1=0 and c.p_t2=0 and c.p_t3=0 and c.p_t4=0 and c.p_t5=0 and c.p_t6=0 then 1 else 0 end) p_type7 '
+         'from '+project_id+'_filtered_raw_data a '
+         'left outer join '+project_id+'_uuid_type c on a.uuid=c.uuid '
+         'group by lon, lat, substr(from_unixtime(time),1,14);')
+    plog(sql8)
+    instance8 = odps.run_sql(sql8)
+    while(not instance8.is_successful()):
+      count += 1
+      progress = int((1.0 * count / (count + 1)) * 100)/5
+      plog("progress: " + str(progress) + "%")
+      result = collection.update_one(
+        {"project_id" : self.project_id,
+          "task_id" : _task_id["compute_business_data"] },
+        {
+          "$set": {
+            "progress": progress
+          },
+          "$currentDate": {"lastModified": True}
+        }
+      )
+      time.sleep(5)
+    time.sleep(2)
+
+    #local people
+    instance30 = odps.run_sql("drop table if exists " +self.project_id+"_local_peo;")
+    while(not instance30.is_successful()):
+      time.sleep(2)
+    plog("drop table SQL runs Successful")
+    plog("________________________________________________________________________")
+
+    sql3=('create table '+project_id+'_local_peo as '
+        'select b.aid,b.area_tid,'
+        ' sum(c.p_t1) p_type1,'
+         ' sum(c.p_t2) p_type2,'
+         ' sum(c.p_t3) p_type3,'
+         ' sum(c.p_t4) p_type4,'
+         ' sum(c.p_t5) p_type5,'
+         ' sum(c.p_t6) p_type6,'
+         ' sum(case when c.p_t1=0 and c.p_t2=0 and c.p_t3=0 and c.p_t4=0 and c.p_t5=0 and c.p_t6=0 then 1 else 0 end) p_type7'
+         ' from '+project_id+'_uuid_type c '
+         ' left outer join '+project_id+'_area_station b on c.cell_h=b.cid '
+         ' where c.p_t1=1 and b.aid!=-1 '
+         ' group by b.aid,b.area_tid;')
+    plog(sql3)
+    instance3 = odps.run_sql(sql3)
+    while(not instance3.is_successful()):
+      count += 1
+      progress = int((1.0 * count / (count + 1)) * 100)/4
+      plog("progress: " + str(progress) + "%")
+      result = collection.update_one(
+        {"project_id" : self.project_id,
+          "task_id" : _task_id["compute_business_data"] },
+        {
+          "$set": {
+            "progress": progress
+          },
+          "$currentDate": {"lastModified": True}
+        }
+      )
+      time.sleep(5)
+    time.sleep(5)
+    instance40 = odps.run_sql("drop table if exists " +self.project_id+"_peo_distr;")
+    while(not instance40.is_successful()):
+      time.sleep(2)
+    plog("drop table SQL runs Successful")
+    plog("________________________________________________________________________")
+
+    sql4=('create table '+project_id+'_peo_distr as '
+        ' select b.aid,a.time,b.area_tid,'
+        ' sum(c.p_t1) p_type1,'
+         ' sum(c.p_t2) p_type2,'
+        ' sum(c.p_t3) p_type3,'
+         ' sum(c.p_t4) p_type4,'
+         ' sum(c.p_t5) p_type5,'
+         ' sum(c.p_t6) p_type6,'
+         ' count(case when c.p_t1=0 and c.p_t2=0 and c.p_t3=0 and c.p_t4=0 and c.p_t5=0 and c.p_t6=0 then 1 end) p_type7'
+        ' from '+project_id+'_uuid_od a'
+        ' left outer join '+project_id+'_uuid_type c on a.uuid=c.uuid'
+        ' left outer join '+project_id+'_area_station b on a.oid=b.cid'
+        ' where b.aid!=-1'
+        ' group by b.aid,a.time,b.area_tid;')
+    plog(sql4)
+    instance4 = odps.run_sql(sql4)
+    while(not instance4.is_successful()):
+      count += 1
+      progress = int((1.0 * count / (count + 1)) * 100)/3
+      plog("progress: " + str(progress) + "%")
+      result = collection.update_one(
+        {"project_id" : self.project_id,
+          "task_id" : _task_id["compute_business_data"] },
+        {
+          "$set": {
+            "progress": progress
+          },
+          "$currentDate": {"lastModified": True}
+        }
+      )
+      time.sleep(5)
+    time.sleep(5)
+    instance50 = odps.run_sql("drop table if exists " +self.project_id+"_pass_local;")
+    while(not instance50.is_successful()):
+      time.sleep(2)
+    plog("drop table SQL runs Successful")
+    plog("________________________________________________________________________")
+
+    sql5=('create table '+project_id+'_pass_local as '
+        ' select substr(time,1,10) time,count(distinct a.uuid) pcount'
+        ' from '+project_id+'_uuid_od a'
+        ' left outer join '+project_id+'_uuid_type c on a.uuid=c.uuid'
+        ' where c.p_t5=1 group by substr(time,1,10);')
+    plog(sql5)
+    instance5 = odps.run_sql(sql5)
+    while(not instance5.is_successful()):
+      count += 1
+      progress = int((1.5 * count / (count + 1)) * 100)/2
+      plog("progress: " + str(progress) + "%")
+      result = collection.update_one(
+        {"project_id" : self.project_id,
+          "task_id" : _task_id["compute_business_data"] },
+        {
+          "$set": {
+            "progress": progress
+          },
+          "$currentDate": {"lastModified": True}
+        }
+      )
+      time.sleep(5)
+    time.sleep(5)
+
+    instance60 = odps.run_sql("drop table if exists " +self.project_id+"_home_work;")
+    while(not instance60.is_successful()):
+      time.sleep(2)
+    plog("drop table SQL runs Successful")
+    plog("________________________________________________________________________")
+    sql6=('create table '+project_id+'_home_work as '
+        'select b.aid area_hid,c.aid area_wid,b.area_tid,count(*) pcount'
+        ' from  '+project_id+'_uuid_type a '
+        ' left outer join '+project_id+'_area_station b on a.cell_h=b.cid'
+        ' left outer join '+project_id+'_area_station c on a.cell_w=c.cid'
+        ' where a.cell_h!=0 and a.cell_w!=0 and b.aid!=-1 and c.aid!=-1'
+        ' group by b.aid,c.aid,b.area_tid;')
+
+    plog(sql6)
+    instance6 = odps.run_sql(sql6)
+    while(not instance6.is_successful()):
+      count += 1
+      progress = int((1.0 * count / (count + 1)) * 100)
+      plog("progress: " + str(progress) + "%")
+      result = collection.update_one(
+        {"project_id" : self.project_id,
+          "task_id" : _task_id["compute_business_data"] },
+        {
+          "$set": {
+            "progress": progress
+          },
+          "$currentDate": {"lastModified": True}
+        }
+      )
+      time.sleep(5)
+    plog("________________________________________________________________________")
+    progress = 100
+    plog("progress: " + str(progress) + "%")
+    result = collection.update_one(
+      {"project_id" : self.project_id,
+        "task_id" : _task_id["compute_business_data"] },
+      {
+        "$set": {
+          "progress": progress
+        },
+        "$currentDate": {"lastModified": True}
+      }
+    )
+    db_client.close()
+    plog("result.matched_count: "+str(result.matched_count))
+    plog("result.modified_count: "+str(result.modified_count))
+  def post(self):
+    # 解析输入的参数
+    self.project_id = self.get_argument('project_id');
+
+    # 调用阿里云执行sql
+    BaseHandler.runSQL(self,self.project_id,"compute_business_data",\
+                        self.doComputeBusinessData)
+
+    # 渲染结果页面
+    obj = {'project_id' : self.project_id,
+           'ret_msg' : "Performing"}
+    self.write(json_encode(obj))
+
+# 35
+class DownloadBusinessDataHandler(tornado.web.RequestHandler,
+                                           BaseHandler):
+  def doDownloadBusinessData(self, exe):
+    with self.lock:
+        name = multiprocessing.current_process().name
+        plog(name + " " + "Starting")
+        progress = 0
+        db_client = MongoClient('localhost', 27017)
+        db = db_client[self.project_id + "_db"]
+        collection = db["task-progress"]
+        result = collection.delete_many({
+                 "project_id": self.project_id,
+                 "task_id": _task_id["download_business_data"]})
+        result = collection.insert_one(
+            { "project_id" : self.project_id,
+              "task_id" : _task_id["download_business_data"],
+              "progress" : progress,
+              "lastModified" : datetime.datetime.utcnow()
+            }
+        )
+        for line in BaseHandler.runProcess(self, exe):
+          print line,
+          # extract upload progess and total block
+          if "download OK" in line:
+            self.sums.value+=1
+            plog(" There are "+str(self.sums.value)+" tasks done...")
+            if self.sums.value == self.lenoftab:
+                progress = 100
+                plog("progress: " + str(progress) + "%")
+                result = collection.update_one(
+                {"project_id" : self.project_id,
+                    "task_id" : _task_id["download_business_data"] },
+                {
+                    "$set": {
+                    "progress": progress
+                    },
+                    "$currentDate": {"lastModified": True}
+                }
+                )
+                plog("all download was done, "+name+" Exiting")
+                db_client.close()
+  def post(self):
+    # 解析输入的参数
+    self.project_id = self.get_argument('project_id');
+    tables=['_area_od','_out_os','_out_ds','_station_summary','_local_peo','_peo_distr','_pass_local','_home_work']
+    self.lenoftab=len(tables)
+    self.lock = multiprocessing.Lock()
+    self.manager = multiprocessing.Manager()
+    self.sums = self.manager.Value('tmp', 0)
+    for table in tables:
+        table_name=self.project_id+table
+
+        # 构造阿里云上运行的cmd
+        download_cmd = ('tunnel download ' + table_name +
+                    ' ' + _download_folder + '/'
+                     + table_name + '.csv '
+                    '-h true;')
+        plog("download_cmd: " + download_cmd)
+        BaseHandler.runCmd(self, download_cmd,  "download_business_data", \
+            self.doDownloadBusinessData)
+
+    # 渲染结果页面
+    obj = {'project_id' : self.project_id,
+           'ret_msg' : "Performing"}
+    self.write(json_encode(obj))
+
+
 
 if __name__ == '__main__':
   tornado.options.parse_command_line()
