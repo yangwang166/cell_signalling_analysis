@@ -1393,26 +1393,11 @@ class FilterDataWithRangeHandler(tornado.web.RequestHandler, BaseHandler):
     self.count_min = self.get_argument('count_min');
     self.count_max = self.get_argument('count_max');
     # 构造阿里云上运行的sql
-    sql1 = ('Create table if not exists ' 
+    sql1 = ('create table if not exists ' 
            '' + self.project_id + '_filtered_raw_data '
            '(uuid string, lon double, lat double, bs_id bigint, '
            'time bigint, count bigint) '
            'partitioned by (date_p string);')
-    sql2 = ('insert overwrite table ' + self.project_id + '_filtered_raw_data '
-           'partition(date_p) '
-           'select C.uuid, C.lon, C.lat, D.id as bs_id, C.time, '
-           'C.count, C.date_p from '
-           '  (select A.uuid, A.lon, A.lat, A.time, B.count, A.date_p '
-           '  from ' + self.project_id + '_spatio_temporal_raw_data A '
-           '  inner join '
-           '  (select C.uuid, C.date_p '
-           '  from (select date_p, uuid, count(*) as count from ' 
-           '' + self.project_id + '_spatio_temporal_raw_data '
-           ' group by uuid, date_p) C '
-           ' where C.count>' + self.count_min + ''
-           ' and C.count<' + self.count_max + ') B'
-           ' on A.uuid=B.uuid and A.date_p=B.date_p group by A.date_p;')
-
     sql2 = ('insert overwrite table ' + self.project_id + '_filtered_raw_data '
             'partition(date_p) '
             'select D.uuid, D.lon, D.lat, E.id as bs_id, D.time, '
